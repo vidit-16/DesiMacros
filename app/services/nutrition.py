@@ -60,7 +60,7 @@ IFCT_SEED_DATA = [
     ("poha",            "flattened rice,beaten rice,chivda",        180, 3.5, 34.2, 4.1, 1.2),
     ("upma",            "rava upma,semolina upma",                  153, 4.2, 22.1, 5.4, 1.8),
     ("idli",            "idly",                                      58, 2.2, 11.3, 0.4, 0.6),
-    ("dosa",            "plain dosa,masala dosa",                   133, 4.4, 24.1, 2.7, 1.1),
+    ("dosa",            "plain dosa,sada dosa",                     133, 4.4, 24.1, 2.7, 1.1),
     ("sambar",          "sambhar",                                   47, 2.9,  7.3, 0.9, 2.1),
     ("curd",            "dahi,yogurt,plain yogurt",                  62, 3.1,  4.7, 3.4, 0.0),
     ("lassi",           "sweet lassi,salted lassi",                  78, 2.9,  9.8, 3.1, 0.0),
@@ -77,6 +77,14 @@ IFCT_SEED_DATA = [
     ("white bread",     "bread slice,sandwich bread",              265, 9.0, 49.0, 3.2, 2.7),
     ("cornflakes",      "breakfast cereal,corn flakes",            357, 7.0, 84.0, 0.9, 1.2),
     ("oats",            "oatmeal,rolled oats,quaker oats",         389,16.9, 66.3, 6.9,10.6),
+    # Added after evaluation: each of these was previously missing (logged as
+    # 0 kcal) or matched to something unrelated in USDA.
+    ("bhatura",         "bhature,batura",                          325, 6.0, 42.0,14.5, 1.5),
+    ("papad",           "papadum,appalam,pappad",                  371,20.0, 52.0, 8.0, 8.0),
+    ("masala dosa",     "masaladosa,potato dosa",                  175, 3.8, 27.5, 5.8, 2.0),
+    ("maggi",           "instant noodles,2 minute noodles",        450, 9.5, 60.0,18.5, 2.5),
+    ("coconut chutney", "nariyal chutney,white chutney",           194, 3.5,  8.0,17.0, 4.0),
+    ("filter coffee",   "south indian coffee,kaapi,milk coffee",    60, 1.8,  8.5, 2.0, 0.0),
 ]
 
 def init_ifct_db():
@@ -140,6 +148,15 @@ def search_ifct(food_name: str) -> Optional[NutritionPer100g]:
         row = c.execute(
             "SELECT name, calories, protein, carbs, fat, fiber FROM ifct_foods WHERE LOWER(aliases) LIKE ?",
             (f"%{query}%",)
+        ).fetchone()
+
+    # 4. The other direction: a stored name inside the query, so "maggi noodles"
+    #    finds "maggi". Longest name wins, so "masala dosa" beats "dosa".
+    if not row:
+        row = c.execute(
+            "SELECT name, calories, protein, carbs, fat, fiber FROM ifct_foods "
+            "WHERE ? LIKE '%' || LOWER(name) || '%' ORDER BY LENGTH(name) DESC LIMIT 1",
+            (query,)
         ).fetchone()
 
     conn.close()
@@ -218,6 +235,8 @@ UNIT_TO_GRAMS = {
     "large bowl": 300,
     "cup": 240,
     "glass": 250,
+    "plate": 300,       # a full plate of rice/biryani, not a token serving
+    "thali": 500,
     "piece": 100,
     "slice": 30,
     "chapati": 40,
@@ -243,6 +262,8 @@ UNIT_TO_GRAMS = {
 # Without this, "2 pieces of roti" becomes 200g (~594 kcal) instead of 80g.
 PIECE_WEIGHTS = {
     "roti": 40, "chapati": 40, "phulka": 40, "wheat roti": 40, "missi roti": 50,
+    "bhatura": 90, "papad": 13, "maggi": 70, "coconut chutney": 30, "chutney": 30,
+    "masala dosa": 150,
     "paratha": 80, "plain paratha": 80, "aloo paratha": 100,
     "poori": 30, "puri": 30, "naan": 90, "kulcha": 80,
     "idli": 40, "dosa": 100, "masala dosa": 150, "vada": 45, "dhokla": 40,
@@ -257,6 +278,7 @@ PIECE_WEIGHTS = {
 GENERIC_COUNT_UNITS = {
     "piece", "pieces", "pc", "pcs", "no", "nos",
     "unit", "units", "count", "serving", "servings", "portion",
+    "packet", "packets", "pack", "packs",
 }
 
 
@@ -269,7 +291,7 @@ def _piece_weight(food_name: str) -> Optional[float]:
         return PIECE_WEIGHTS[name]
     # Longest key first so "aloo paratha" wins over "paratha".
     for key in sorted(PIECE_WEIGHTS, key=len, reverse=True):
-        if re.search(rf"{re.escape(key)}", name):
+        if re.search(rf"\b{re.escape(key)}s?\b", name):
             return PIECE_WEIGHTS[key]
     return None
 

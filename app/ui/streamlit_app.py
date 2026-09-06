@@ -91,6 +91,7 @@ with st.sidebar:
         )
     else:
         st.caption("This log belongs to your link alone - bookmark the URL to come back to it.")
+    st.caption("Figures are estimates, not medical or dietary advice.")
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -440,6 +441,13 @@ elif "⚙️ Profile" in page:
                 bmi = goals.get("bmi", 0)
                 bmi_label = "Underweight" if bmi < 18.5 else "Normal" if bmi < 25 else "Overweight" if bmi < 30 else "Obese"
                 st.info(f"BMI: **{bmi}** ({bmi_label})")
+                st.caption(
+                    "These targets come from the Mifflin-St Jeor equation applied to the "
+                    "numbers above - a population-level estimate, not advice for you "
+                    "specifically. Check with a doctor or a registered dietitian before "
+                    "acting on them, especially if you are managing a health condition, "
+                    "pregnant, or under 18."
+                )
 
                 st.cache_data.clear()
                 st.session_state["profile_saved"] = True

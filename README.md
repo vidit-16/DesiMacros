@@ -131,7 +131,12 @@ calorie-tracker/
 │   │   └── insights.py        # Alerts, patterns, weekly summary
 │   └── ui/streamlit_app.py    # Streamlit frontend
 ├── data/                      # SQLite DBs, created on first run
-├── tests/test_parser.py
+├── docs/
+│   ├── ACCURACY.md            # where the numbers come from, and their limits
+│   └── DEVELOPING.md          # architecture, conventions, known traps
+├── tests/
+│   ├── test_nutrition.py      # offline assertions
+│   └── test_parser.py
 ├── requirements.txt
 ├── Dockerfile
 ├── docker-compose.yml
@@ -141,15 +146,32 @@ calorie-tracker/
 ## Tests
 
 ```bash
-python -m tests.test_parser
+python -m tests.test_nutrition   # assertions, offline, no API key
+python -m tests.test_parser      # prints a sample of lookups
 ```
 
-The nutrition half runs without any API key. Uncomment `test_parser()` at the
-bottom of the file to exercise the LLM parser once `GROQ_API_KEY` is set.
+`test_nutrition` covers portion weights, IFCT matching and the USDA relevance
+guard. Uncomment `test_parser()` at the bottom of `tests/test_parser.py` to
+exercise the LLM parser once `GROQ_API_KEY` is set.
+
+## Accuracy
+
+[`docs/ACCURACY.md`](docs/ACCURACY.md) covers where every number comes from,
+what has been measured (database coverage, parse stability), the errors that
+remain, and what the app should not be used for. The summary: good for tracking
+direction over weeks, not for precise calorie counting.
+
+**This is not medical or dietary advice.** Calorie and macro targets are a
+population-level estimate from the Mifflin-St Jeor equation, not a
+recommendation for any individual.
+
+[`docs/DEVELOPING.md`](docs/DEVELOPING.md) has the architecture, conventions and
+the non-obvious traps, and is worth reading before changing the nutrition or
+multi-user logic.
 
 ## Notes on the data
 
-The IFCT table is a curated subset of ~37 common Indian dishes with approximate
+The IFCT table is a curated subset of ~43 common Indian dishes with approximate
 per-100g values based on the NIN IFCT 2017 publication, plus portion weights for
-counted foods. It's good enough for day-to-day tracking, not for clinical use.
-Editing `IFCT_SEED_DATA` and restarting updates existing databases in place.
+counted foods. Editing `IFCT_SEED_DATA` and restarting updates existing
+databases in place, so corrections propagate without a migration.

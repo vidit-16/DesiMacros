@@ -91,9 +91,13 @@ restarts. To keep logs, put them in a hosted Postgres:
 
 Paste the string as given — the `postgres://` form some providers hand out is
 rewritten to the right driver automatically. The schema is created on first
-boot, so there is no migration step. `GET /health` reports `storage` as
-`sqlite` or `postgres`, which is the quickest way to confirm the switch took,
-and the UI stops warning visitors about resets once storage is durable.
+boot, so there is no migration step.
+
+To confirm the switch took, open the deployed app: the sidebar stops warning
+that data is cleared on restart once storage is durable. `GET /health` also
+reports `storage` as `sqlite` or `postgres`, but only where the API port is
+reachable — running locally, or through docker-compose. A single-port host
+exposes Streamlit alone, so that URL returns the UI there, not the API.
 
 With `DATABASE_URL` left alone the app uses SQLite exactly as before, so local
 development needs no database server.

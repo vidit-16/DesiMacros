@@ -99,6 +99,7 @@ development needs no database server.
 | `DATABASE_URL` | Where meal logs live; SQLite or Postgres | `sqlite:///./data/desimacros.db` |
 | `API_BASE_URL` | Where the UI finds the API | `http://localhost:8000` |
 | `DEMO_MODE` | Warn visitors that data resets on restart | off |
+| `TZ` | Timezone the day boundary follows | `Asia/Kolkata` |
 
 ## API
 

@@ -14,6 +14,9 @@ COPY . .
 RUN mkdir -p data && chmod +x start.sh && chown -R appuser:appuser /app
 
 ENV HOME=/home/appuser
+# Containers default to UTC, which files a late-night meal under the previous
+# day for anyone in India. Override TZ if you are elsewhere.
+ENV TZ=Asia/Kolkata
 ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 
 USER appuser

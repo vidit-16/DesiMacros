@@ -14,7 +14,7 @@ import plotly.express as px
 from datetime import date
 
 # Same container or bare metal -> localhost:8000; docker-compose -> http://api:8000
-API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000").rstrip("/")
+API_BASE = (os.getenv("API_BASE_URL") or "http://localhost:8000").rstrip("/")
 
 # Set DEMO_MODE=1 on a public deployment where storage is ephemeral.
 DEMO_MODE = os.getenv("DEMO_MODE", "").lower() in {"1", "true", "yes"}

@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: desimacros
+    runtime: docker
+    plan: free
+    region: singapore          # closest region to India
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    envVars:
+      # sync: false means Render prompts for the value in its dashboard,
+      # so no key ever lives in this repo.
+      - key: GROQ_API_KEY
+        sync: false
+      - key: USDA_API_KEY
+        sync: false
+      - key: DATABASE_URL      # leave blank for SQLite, or paste a Postgres URL
+        sync: false
+      - key: DEMO_MODE
+        value: "1"

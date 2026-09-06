@@ -1,14 +1,3 @@
----
-title: DesiMacros
-emoji: 🥗
-colorFrom: orange
-colorTo: green
-sdk: docker
-app_port: 8501
-pinned: false
-short_description: Conversational calorie tracker built for Indian diets
----
-
 # 🥗 DesiMacros — Conversational Calorie Tracker
 
 A calorie and macro tracker built for Indian diets. Log meals by describing them
@@ -83,10 +72,13 @@ docker build -t desimacros . && docker run -p 8501:8501 --env-file .env desimacr
 The image runs both processes in one container, with Streamlit on the public
 port and the API reachable only from inside it, so any single-service host works.
 
-For **Hugging Face Spaces**: create a Docker Space, add `GROQ_API_KEY` (and
-optionally `USDA_API_KEY`) as repository secrets, set `DEMO_MODE=1` as a
-variable, then push this repo to the Space's git remote. The YAML frontmatter at
-the top of this file is the Space config.
+`render.yaml` describes the service for **Render**, so pointing a Blueprint at
+this repository is enough to deploy it. Render prompts for `GROQ_API_KEY` and
+the other secrets in its own dashboard; none of them live in the repo. The
+container listens on whatever `$PORT` the host sets.
+
+Hugging Face Spaces works too, but only its Docker SDK can run a process like
+this, and that is a paid tier.
 
 Storage on free tiers is ephemeral, so SQLite files are cleared whenever the app
 restarts. To keep history, create a free Postgres database (Neon or Supabase) and

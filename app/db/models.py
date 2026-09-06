@@ -17,7 +17,7 @@ def _normalize_db_url(url: str) -> str:
     return url
 
 
-DATABASE_URL = _normalize_db_url(os.getenv("DATABASE_URL", "sqlite:///./data/desimacros.db"))
+DATABASE_URL = _normalize_db_url(os.getenv("DATABASE_URL") or "sqlite:///./data/desimacros.db")
 IS_SQLITE = DATABASE_URL.startswith("sqlite")
 
 # data/ holds the IFCT reference table regardless of where the logs live.

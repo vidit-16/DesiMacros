@@ -61,6 +61,10 @@ def main():
     # Splitting these apart mattered: a paratha carries a paratha's fat.
     check("roti is not paratha", search_ifct("roti").food_name, "roti")
     check("masala dosa is its own dish", search_ifct("masala dosa").food_name, "masala dosa")
+    # A bare ingredient must not resolve to whichever dish happens to contain it.
+    check("paneer is not palak paneer", search_ifct("paneer").food_name, "paneer")
+    check("a sandwich is not a bread slice", search_ifct("sandwich").food_name, "veg sandwich")
+    check("paneer sandwich exists", search_ifct("paneer sandwich").food_name, "paneer sandwich")
 
     # ── scaling ───────────────────────────────────────────────────────────────
     r = lookup_nutrition("roti", 2, "piece")
@@ -72,6 +76,17 @@ def main():
     # USDA answers every query with something; unrelated matches must be refused.
     check("rejects unrelated", _is_plausible_match("Oats (Includes foods for USDA's Food Distribution Program)", "unknown food xyz"), False)
     check("accepts related", _is_plausible_match("Soybean curd", "curd"), True)
+    check("accepts multi-word", _is_plausible_match("CHICKEN BREAST", "chicken breast"), True)
+    check("plural tolerated", _is_plausible_match("Almonds, raw", "almond"), True)
+    # One shared word is not enough - this logged 3.5 sandwiches as palak paneer.
+    check("one shared word is not a match", _is_plausible_match("Palak Paneer", "paneer sandwich"), False)
+    check("different dish rejected", _is_plausible_match("Chicken Biryani", "mutton biryani"), False)
+
+    # ── the reported failure, end to end ──────────────────────────────────────
+    r = lookup_nutrition("paneer sandwich", 3.5, "piece")
+    check("sandwich source", r["source"], "ifct")
+    check("sandwich matched", r["food_name"], "paneer sandwich")
+    check("sandwich grams", r["grams"], 490.0)
 
     if failures:
         print(f"FAILED ({len(failures)}):")

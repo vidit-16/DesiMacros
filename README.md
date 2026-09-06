@@ -184,7 +184,8 @@ MIT — see [LICENSE](LICENSE).
 
 ## Notes on the data
 
-The IFCT table is a curated subset of ~43 common Indian dishes with approximate
+The IFCT table is a curated subset of ~46 common Indian dishes with approximate
 per-100g values based on the NIN IFCT 2017 publication, plus portion weights for
-counted foods. Editing `IFCT_SEED_DATA` and restarting updates existing
+counted foods. Anything outside it falls to USDA, and anything USDA cannot match
+confidently is logged as zero and flagged rather than guessed at. Editing `IFCT_SEED_DATA` and restarting updates existing
 databases in place, so corrections propagate without a migration.

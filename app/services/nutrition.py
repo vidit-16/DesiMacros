@@ -74,7 +74,7 @@ IFCT_SEED_DATA = [
     ("whole milk",      "full fat milk,doodh",                      61, 3.2,  4.8, 3.3, 0.0),
     ("tea with milk",   "chai,masala chai,milk tea",                 40, 1.2,  5.8, 1.4, 0.0),
     ("peanuts",         "groundnuts,moongfali",                    567,25.8, 16.1,49.2, 8.5),
-    ("white bread",     "bread slice,sandwich bread",              265, 9.0, 49.0, 3.2, 2.7),
+    ("white bread",     "bread slice,pav,loaf bread",              265, 9.0, 49.0, 3.2, 2.7),
     ("cornflakes",      "breakfast cereal,corn flakes",            357, 7.0, 84.0, 0.9, 1.2),
     ("oats",            "oatmeal,rolled oats,quaker oats",         389,16.9, 66.3, 6.9,10.6),
     # Added after evaluation: each of these was previously missing (logged as
@@ -85,6 +85,9 @@ IFCT_SEED_DATA = [
     ("maggi",           "instant noodles,2 minute noodles",        450, 9.5, 60.0,18.5, 2.5),
     ("coconut chutney", "nariyal chutney,white chutney",           194, 3.5,  8.0,17.0, 4.0),
     ("filter coffee",   "south indian coffee,kaapi,milk coffee",    60, 1.8,  8.5, 2.0, 0.0),
+    ("paneer",          "cottage cheese,fresh paneer,malai paneer", 296,18.3,  1.2,22.8, 0.0),
+    ("paneer sandwich", "grilled paneer sandwich,paneer toast",     260,10.5, 26.0,11.5, 2.0),
+    ("veg sandwich",    "sandwich,vegetable sandwich,grilled sandwich,club sandwich", 220, 6.0, 30.0, 7.5, 2.5),
 ]
 
 def init_ifct_db():
@@ -136,10 +139,12 @@ def search_ifct(food_name: str) -> Optional[NutritionPer100g]:
         (query,)
     ).fetchone()
 
-    # 2. Name contains query
+    # 2. Name contains query, shortest (closest) name first so the result does
+    #    not depend on insertion order.
     if not row:
         row = c.execute(
-            "SELECT name, calories, protein, carbs, fat, fiber FROM ifct_foods WHERE LOWER(name) LIKE ?",
+            "SELECT name, calories, protein, carbs, fat, fiber FROM ifct_foods "
+            "WHERE LOWER(name) LIKE ? ORDER BY LENGTH(name) ASC LIMIT 1",
             (f"%{query}%",)
         ).fetchone()
 
@@ -184,11 +189,23 @@ def _is_plausible_match(description: str, query: str) -> bool:
         "food", "foods", "for", "usda", "program", "distribution",
         "nfs", "prepared", "from", "not", "further", "specified", "other",
     }
-    q_words = {w for w in re.findall(r"[a-z]+", query.lower()) if len(w) > 2} - stop
-    d_words = {w for w in re.findall(r"[a-z]+", description.lower()) if len(w) > 2} - stop
+
+    def words(text: str) -> set:
+        out = set()
+        for w in re.findall(r"[a-z]+", text.lower()):
+            if len(w) <= 2 or w in stop:
+                continue
+            out.add(w[:-1] if len(w) > 3 and w.endswith("s") else w)  # crude plural
+        return out
+
+    q_words = words(query)
     if not q_words:
         return False
-    return bool(q_words & d_words)
+
+    # Every meaningful word in the query has to be there. One shared word is not
+    # enough: "paneer sandwich" and "Palak Paneer" share "paneer" and are not the
+    # same food. Falling through to not_found is better than a confident mistake.
+    return q_words <= words(description)
 
 
 def search_usda(food_name: str) -> Optional[NutritionPer100g]:
@@ -263,7 +280,7 @@ UNIT_TO_GRAMS = {
 PIECE_WEIGHTS = {
     "roti": 40, "chapati": 40, "phulka": 40, "wheat roti": 40, "missi roti": 50,
     "bhatura": 90, "papad": 13, "maggi": 70, "coconut chutney": 30, "chutney": 30,
-    "masala dosa": 150,
+    "masala dosa": 150, "paneer sandwich": 140, "veg sandwich": 130, "sandwich": 130,
     "paratha": 80, "plain paratha": 80, "aloo paratha": 100,
     "poori": 30, "puri": 30, "naan": 90, "kulcha": 80,
     "idli": 40, "dosa": 100, "masala dosa": 150, "vada": 45, "dhokla": 40,

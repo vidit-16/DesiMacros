@@ -52,6 +52,31 @@ reading code:
 | masala dosa | 200 kcal | 263 kcal | was an alias of plain dosa, so no filling |
 | maggi, 1 packet | 137 kcal | 315 kcal | USDA plain noodles at a 100g default |
 
+## Found in real use
+
+Logging "3.5 paneer sandwiches" recorded 3.5 pieces of **palak paneer**. The
+IFCT table correctly had no match, USDA was asked, and it returned a Palak
+Paneer product — which the relevance guard accepted because the single word
+"paneer" was shared. The word "sandwich" was ignored entirely.
+
+This is the worst failure mode the app has: not a miss, but a confident wrong
+answer. Three things changed:
+
+- The USDA guard now requires **every** meaningful word in the query to appear
+  in the description, not just one. "paneer sandwich" no longer matches "Palak
+  Paneer"; it falls through to not-found and is flagged, which is the honest
+  outcome when nothing matches.
+- Partial name matches inside IFCT now take the shortest matching name rather
+  than whichever row was inserted first, so results do not depend on table
+  order.
+- `paneer` had no plain entry, so the bare ingredient resolved to whichever
+  dish contained the word. It, `paneer sandwich` and `veg sandwich` now exist,
+  and `sandwich` no longer resolves to a single slice of bread.
+
+The general lesson holds beyond this case: a 46-dish table cannot cover a
+cuisine, and the interesting question is what happens at the edge. Failing
+loudly is better than failing confidently.
+
 A separate defect surfaced while checking these: the regex doing portion
 matching had been corrupted into a character class that never matched, so every
 food whose name was not an exact dictionary key silently fell back to 100g.
@@ -79,17 +104,22 @@ currently matched against USDA and returns *SABZI POLO*, a Persian rice dish, at
 a different flavour. Any single number here is fiction; the honest fix is asking
 which sabzi.
 
-**The table is 43 dishes, approximated.** Values are per-100g figures based on
+**The table is 46 dishes, approximated.** Values are per-100g figures based on
 the NIN IFCT 2017 publication and common references, not the full IFCT dataset,
 and the six most recent entries are approximations added to close gaps this
 evaluation exposed. Editing `IFCT_SEED_DATA` and restarting updates existing
 databases in place.
 
 **USDA is a US database.** When an Indian dish falls through to it, the match is
-approximate at best. A word-overlap check rejects matches sharing no words with
-the query, so unknown foods now log as 0 kcal and are flagged rather than being
-silently recorded as something unrelated — before that check, "unknown food xyz"
+approximate at best. Every meaningful word of the query must appear in the
+match's description, so unknown foods log as 0 kcal and are flagged rather than
+being recorded as something unrelated — before that check, "unknown food xyz"
 came back as Oats at 389 kcal.
+
+**Unknown foods produce nothing rather than an estimate.** The most valuable
+change available to this app is asking the LLM for a per-100g estimate when
+both databases miss, recorded with its own source so it is visibly an estimate.
+A rough number for a paneer sandwich beats zero, and beats a wrong dish.
 
 **Vague input becomes an assumption.** "some rice" gets a conservative estimate
 and a `parse_confidence` of low or medium, surfaced in the UI. Nothing prevents

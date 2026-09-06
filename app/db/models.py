@@ -4,11 +4,30 @@ from sqlalchemy.orm import sessionmaker, relationship
 from datetime import datetime, date, timezone
 import os
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/desimacros.db")
+def _normalize_db_url(url: str) -> str:
+    """
+    Hosted Postgres providers hand out postgres:// or postgresql:// URLs, both of
+    which SQLAlchemy would route to psycopg2. Point them at psycopg 3 instead,
+    which is the driver in requirements.txt, so a pasted connection string works.
+    """
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://"):]
+    if url.startswith("postgresql://"):
+        url = "postgresql+psycopg://" + url[len("postgresql://"):]
+    return url
 
+
+DATABASE_URL = _normalize_db_url(os.getenv("DATABASE_URL", "sqlite:///./data/desimacros.db"))
+IS_SQLITE = DATABASE_URL.startswith("sqlite")
+
+# data/ holds the IFCT reference table regardless of where the logs live.
 os.makedirs("data", exist_ok=True)
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+engine_kwargs = {"pool_pre_ping": True}  # serverless Postgres drops idle connections
+if IS_SQLITE:
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
+
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
@@ -73,7 +92,12 @@ class MealEntry(Base):
 def init_db():
     Base.metadata.create_all(bind=engine)
 
-    # Safe migration for existing DBs
+    # Safe migration for SQLite files created by earlier versions. On Postgres
+    # create_all above has already produced the current schema.
+    if not IS_SQLITE:
+        _seed_local_user()
+        return
+
     from sqlalchemy import text, inspect
     insp = inspect(engine)
     existing = [c["name"] for c in insp.get_columns("users")]
@@ -95,6 +119,11 @@ def init_db():
         conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_token ON users(token)"))
         conn.commit()
 
+    _seed_local_user()
+
+
+def _seed_local_user():
+    """The token-less profile used when the app runs as a single-user app."""
     db = SessionLocal()
     if not db.query(User).filter(User.token.is_(None)).first():
         default_user = User(

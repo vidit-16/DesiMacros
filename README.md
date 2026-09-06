@@ -38,7 +38,7 @@ has no idea what a katori is.
 
 ## Stack
 
-- **Backend**: FastAPI + SQLAlchemy
+- **Backend**: FastAPI + SQLAlchemy (SQLite locally, Postgres when deployed)
 - **Frontend**: Streamlit
 - **LLM**: Groq (`openai/gpt-oss-120b` by default, set `GROQ_MODEL` to change)
 - **Nutrition**: curated IFCT subset in SQLite + USDA FoodData Central API
@@ -88,9 +88,14 @@ optionally `USDA_API_KEY`) as repository secrets, set `DEMO_MODE=1` as a
 variable, then push this repo to the Space's git remote. The YAML frontmatter at
 the top of this file is the Space config.
 
-Storage on free tiers is ephemeral — logs are cleared whenever the app restarts.
-For a deployment that keeps its history, point `DATABASE_URL` at a hosted
-Postgres instead of SQLite.
+Storage on free tiers is ephemeral, so SQLite files are cleared whenever the app
+restarts. To keep history, create a free Postgres database (Neon or Supabase) and
+set `DATABASE_URL` to its connection string — paste it as given, including the
+`postgres://` form some providers hand out, and the app points it at the right
+driver itself. Nothing else changes: the schema is created on first boot.
+
+With `DATABASE_URL` left alone the app uses SQLite exactly as before, so local
+development needs no database server.
 
 ## Configuration
 
@@ -99,7 +104,7 @@ Postgres instead of SQLite.
 | `GROQ_API_KEY` | Meal parsing + weekly summary | *required* |
 | `GROQ_MODEL` | Groq model ID (they get retired periodically) | `openai/gpt-oss-120b` |
 | `USDA_API_KEY` | Fallback nutrition lookup | optional |
-| `DATABASE_URL` | SQLAlchemy URL for the log database | `sqlite:///./data/desimacros.db` |
+| `DATABASE_URL` | Where meal logs live; SQLite or Postgres | `sqlite:///./data/desimacros.db` |
 | `API_BASE_URL` | Where the UI finds the API | `http://localhost:8000` |
 | `DEMO_MODE` | Warn visitors that data resets on restart | off |
 

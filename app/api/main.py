@@ -4,9 +4,10 @@ DesiMacros FastAPI Backend
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from pydantic import BaseModel
 from datetime import date, timedelta
 from typing import Optional, List
@@ -75,6 +76,55 @@ class ProfileUpdateRequest(BaseModel):
     goal_type: str = "maintain"
 
 
+# ── Current visitor ────────────────────────────────────────────────────────────
+
+# Stats a brand-new visitor starts with; they can change them under Profile.
+GUEST_DEFAULTS = {
+    "age": 22, "gender": "male", "height_cm": 170.0, "weight_kg": 65.0,
+    "activity_level": "moderate", "goal_type": "maintain",
+}
+
+
+def get_current_user(
+    x_user_token: str = Header(None, alias="X-User-Token"),
+    db: Session = Depends(get_db),
+) -> User:
+    """
+    Every visitor gets their own log, keyed by a token the UI keeps in the URL.
+    Requests with no token fall back to the local profile (token IS NULL), so
+    running this on your own machine behaves exactly like a single-user app.
+    """
+    if x_user_token:
+        user = db.query(User).filter(User.token == x_user_token).first()
+        if user:
+            return user
+
+        goals = calculate_goals(
+            GUEST_DEFAULTS["weight_kg"], GUEST_DEFAULTS["height_cm"], GUEST_DEFAULTS["age"],
+            GUEST_DEFAULTS["gender"], GUEST_DEFAULTS["activity_level"], GUEST_DEFAULTS["goal_type"],
+        )
+        user = User(
+            token=x_user_token, name="You", **GUEST_DEFAULTS,
+            calorie_goal=goals["target_calories"], protein_goal=goals["protein_g"],
+            carbs_goal=goals["carbs_g"], fat_goal=goals["fat_g"],
+        )
+        try:
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        except IntegrityError:
+            # Another request created this visitor first - take theirs.
+            db.rollback()
+            user = db.query(User).filter(User.token == x_user_token).first()
+        return user
+
+    user = db.query(User).filter(User.token.is_(None)).first()
+    if not user:
+        raise HTTPException(status_code=500, detail="No local profile found. Restart the API to seed one.")
+    return user
+
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.get("/health")
@@ -83,7 +133,7 @@ def health():
 
 
 @app.post("/api/log", response_model=LogMealResponse)
-def log_meal(req: LogMealRequest, db: Session = Depends(get_db)):
+def log_meal(req: LogMealRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     try:
         log_date = date.fromisoformat(req.log_date) if req.log_date else date.today()
     except ValueError:
@@ -109,7 +159,6 @@ def log_meal(req: LogMealRequest, db: Session = Depends(get_db)):
         result = lookup_nutrition(item.food_name, item.quantity, item.unit)
         nutrition_results.append(result)
 
-    user = db.query(User).first()
     daily_log = DailyLog(user_id=user.id, log_date=log_date, raw_input=req.text)
     db.add(daily_log)
     db.flush()
@@ -154,8 +203,7 @@ def log_meal(req: LogMealRequest, db: Session = Depends(get_db)):
 
 
 @app.get("/api/history")
-def get_history(start_date: Optional[str] = None, end_date: Optional[str] = None, db: Session = Depends(get_db)):
-    user = db.query(User).first()
+def get_history(start_date: Optional[str] = None, end_date: Optional[str] = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     end = date.fromisoformat(end_date) if end_date else date.today()
     start = date.fromisoformat(start_date) if start_date else end - timedelta(days=6)
 
@@ -193,8 +241,7 @@ def get_history(start_date: Optional[str] = None, end_date: Optional[str] = None
 
 
 @app.get("/api/summary")
-def get_summary(log_date: Optional[str] = None, db: Session = Depends(get_db)):
-    user = db.query(User).first()
+def get_summary(log_date: Optional[str] = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     target_date = date.fromisoformat(log_date) if log_date else date.today()
 
     entries = (
@@ -216,9 +263,14 @@ def get_summary(log_date: Optional[str] = None, db: Session = Depends(get_db)):
 
 
 @app.delete("/api/entry/{entry_id}")
-def delete_entry(entry_id: int, db: Session = Depends(get_db)):
+def delete_entry(entry_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     """Remove a single mis-logged meal entry."""
-    entry = db.query(MealEntry).filter(MealEntry.id == entry_id).first()
+    entry = (
+        db.query(MealEntry)
+        .join(DailyLog)
+        .filter(MealEntry.id == entry_id, DailyLog.user_id == user.id)
+        .first()
+    )
     if not entry:
         raise HTTPException(status_code=404, detail="Meal entry not found.")
 
@@ -238,8 +290,7 @@ def delete_entry(entry_id: int, db: Session = Depends(get_db)):
 
 
 @app.get("/api/weekly")
-def get_weekly(db: Session = Depends(get_db)):
-    user = db.query(User).first()
+def get_weekly(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     today = date.today()
 
     weekly = []
@@ -263,8 +314,7 @@ def get_weekly(db: Session = Depends(get_db)):
 
 
 @app.get("/api/alerts")
-def get_alerts(log_date: Optional[str] = None, db: Session = Depends(get_db)):
-    user = db.query(User).first()
+def get_alerts(log_date: Optional[str] = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     target_date = date.fromisoformat(log_date) if log_date else date.today()
 
     entries = (
@@ -279,8 +329,7 @@ def get_alerts(log_date: Optional[str] = None, db: Session = Depends(get_db)):
 
 
 @app.get("/api/weekly-summary")
-def weekly_summary(db: Session = Depends(get_db)):
-    user = db.query(User).first()
+def weekly_summary(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     today = date.today()
 
     weekly = []
@@ -296,8 +345,7 @@ def weekly_summary(db: Session = Depends(get_db)):
 
 
 @app.get("/api/patterns")
-def weekly_patterns(db: Session = Depends(get_db)):
-    user = db.query(User).first()
+def weekly_patterns(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     today = date.today()
 
     weekly = []
@@ -312,8 +360,7 @@ def weekly_patterns(db: Session = Depends(get_db)):
 
 
 @app.get("/api/profile")
-def get_profile(db: Session = Depends(get_db)):
-    user = db.query(User).first()
+def get_profile(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     return {
         "name": user.name,
         "age": user.age,
@@ -330,8 +377,7 @@ def get_profile(db: Session = Depends(get_db)):
 
 
 @app.post("/api/profile")
-def update_profile(req: ProfileUpdateRequest, db: Session = Depends(get_db)):
-    user = db.query(User).first()
+def update_profile(req: ProfileUpdateRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
 
     user.name = req.name
     user.age = req.age

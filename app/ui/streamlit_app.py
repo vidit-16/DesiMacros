@@ -4,6 +4,7 @@ Run with: streamlit run app/ui/streamlit_app.py
 """
 
 import os
+import uuid
 
 import streamlit as st
 import httpx
@@ -14,6 +15,25 @@ from datetime import date
 
 # Same container or bare metal -> localhost:8000; docker-compose -> http://api:8000
 API_BASE = os.getenv("API_BASE_URL", "http://localhost:8000").rstrip("/")
+
+# Set DEMO_MODE=1 on a public deployment where storage is ephemeral.
+DEMO_MODE = os.getenv("DEMO_MODE", "").lower() in {"1", "true", "yes"}
+
+def _visitor_token() -> str:
+    """
+    Keep each visitor's log separate. The token lives in the URL because
+    Streamlit's session state is dropped on refresh - bookmarking the link is
+    what carries your history forward.
+    """
+    token = st.query_params.get("u")
+    if not token:
+        token = uuid.uuid4().hex[:16]
+        st.query_params["u"] = token
+    return token
+
+
+USER_TOKEN = _visitor_token()
+HEADERS = {"X-User-Token": USER_TOKEN}
 
 st.set_page_config(
     page_title="DesiMacros",
@@ -41,14 +61,16 @@ st.markdown("""
 
 # ── Load profile for sidebar ──────────────────────────────────────────────────
 @st.cache_data(ttl=30)
-def load_profile():
+def load_profile(token: str):
+    # token is part of the cache key - without it one visitor's profile would
+    # be served to the next, since cache_data is shared across sessions.
     try:
-        r = httpx.get(f"{API_BASE}/api/profile", timeout=5)
+        r = httpx.get(f"{API_BASE}/api/profile", timeout=5, headers={"X-User-Token": token})
         return r.json()
     except Exception:
         return {"calorie_goal": 2200, "protein_goal": 100, "carbs_goal": 280, "fat_goal": 70, "name": "User"}
 
-profile = load_profile()
+profile = load_profile(USER_TOKEN)
 
 with st.sidebar:
     st.title("🥗 DesiMacros")
@@ -61,40 +83,48 @@ with st.sidebar:
     st.metric("Protein", f"{profile.get('protein_goal', 100):.0f}g")
     st.metric("Carbs", f"{profile.get('carbs_goal', 280):.0f}g")
     st.metric("Fat", f"{profile.get('fat_goal', 70):.0f}g")
+    st.divider()
+    if DEMO_MODE:
+        st.caption(
+            "This log belongs to your link alone - bookmark the URL to come back to it. "
+            "Demo data is cleared whenever the app restarts."
+        )
+    else:
+        st.caption("This log belongs to your link alone - bookmark the URL to come back to it.")
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def post_log(text, log_date):
     try:
-        r = httpx.post(f"{API_BASE}/api/log", json={"text": text, "log_date": log_date}, timeout=30)
+        r = httpx.post(f"{API_BASE}/api/log", json={"text": text, "log_date": log_date}, timeout=30, headers=HEADERS)
         return r.json() if r.status_code == 200 else {"error": r.text}
     except Exception as e:
         return {"error": str(e)}
 
 def get_summary(log_date):
     try:
-        r = httpx.get(f"{API_BASE}/api/summary", params={"log_date": log_date}, timeout=10)
+        r = httpx.get(f"{API_BASE}/api/summary", params={"log_date": log_date}, timeout=10, headers=HEADERS)
         return r.json()
     except Exception as e:
         return {"error": str(e)}
 
 def get_history():
     try:
-        r = httpx.get(f"{API_BASE}/api/history", timeout=10)
+        r = httpx.get(f"{API_BASE}/api/history", timeout=10, headers=HEADERS)
         return r.json()
     except Exception as e:
         return {"error": str(e)}
 
 def get_weekly():
     try:
-        r = httpx.get(f"{API_BASE}/api/weekly", timeout=10)
+        r = httpx.get(f"{API_BASE}/api/weekly", timeout=10, headers=HEADERS)
         return r.json()
     except Exception as e:
         return {"error": str(e)}
 
 def delete_entry(entry_id):
     try:
-        r = httpx.delete(f"{API_BASE}/api/entry/{entry_id}", timeout=10)
+        r = httpx.delete(f"{API_BASE}/api/entry/{entry_id}", timeout=10, headers=HEADERS)
         return (True, "") if r.status_code == 200 else (False, r.text)
     except Exception as e:
         return False, str(e)
@@ -228,7 +258,7 @@ elif "📊 Today" in page:
             st.divider()
             st.subheader("💡 Today's Alerts")
             try:
-                alerts_data = httpx.get(f"{API_BASE}/api/alerts", params={"log_date": str(selected_date)}, timeout=10).json()
+                alerts_data = httpx.get(f"{API_BASE}/api/alerts", params={"log_date": str(selected_date)}, timeout=10, headers=HEADERS).json()
                 for alert in alerts_data.get("alerts", []):
                     st.markdown(alert)
             except Exception as e:
@@ -304,7 +334,7 @@ elif "📈 Weekly" in page:
             st.divider()
             st.subheader("🔍 Patterns")
             try:
-                patterns_data = httpx.get(f"{API_BASE}/api/patterns", timeout=10).json()
+                patterns_data = httpx.get(f"{API_BASE}/api/patterns", timeout=10, headers=HEADERS).json()
                 for p in patterns_data.get("patterns", []):
                     st.markdown(p)
             except Exception as e:
@@ -316,7 +346,7 @@ elif "📈 Weekly" in page:
             if st.button("Generate Weekly Summary", type="primary"):
                 with st.spinner("Analysing your week..."):
                     try:
-                        summary_data = httpx.get(f"{API_BASE}/api/weekly-summary", timeout=30).json()
+                        summary_data = httpx.get(f"{API_BASE}/api/weekly-summary", timeout=30, headers=HEADERS).json()
                         st.info(summary_data.get("summary", "No summary available."))
                         st.caption(f"Based on {summary_data.get('days_logged', 0)} logged days this week.")
                     except Exception as e:
@@ -327,7 +357,7 @@ elif "⚙️ Profile" in page:
     st.title("⚙️ Profile & Goals")
     st.caption("Enter your stats and we'll calculate your exact calorie and macro targets.")
 
-    profile = load_profile()
+    profile = load_profile(USER_TOKEN)
 
     with st.form("profile_form"):
         st.subheader("Personal Info")
@@ -385,7 +415,7 @@ elif "⚙️ Profile" in page:
                     "name": name, "age": age, "gender": gender,
                     "height_cm": height_cm, "weight_kg": weight_kg,
                     "activity_level": activity_level, "goal_type": goal_type,
-                }, timeout=10)
+                }, timeout=10, headers=HEADERS)
                 result = r.json()
                 goals = result.get("goals", {})
 

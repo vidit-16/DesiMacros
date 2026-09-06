@@ -19,6 +19,9 @@ class User(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, default="User")
 
+    # Identifies one visitor's log. NULL is the local single-user profile.
+    token = Column(String, unique=True, index=True, nullable=True)
+
     # Physical stats
     age = Column(Integer, default=20)
     gender = Column(String, default="male")
@@ -81,15 +84,19 @@ def init_db():
         "weight_kg":      "FLOAT DEFAULT 65.0",
         "activity_level": "VARCHAR DEFAULT 'moderate'",
         "goal_type":      "VARCHAR DEFAULT 'maintain'",
+        "token":          "VARCHAR",
     }
     with engine.connect() as conn:
         for col, typedef in new_cols.items():
             if col not in existing:
                 conn.execute(text(f"ALTER TABLE users ADD COLUMN {col} {typedef}"))
+        # SQLite can't add a UNIQUE column in place, so index it afterwards.
+        # Multiple NULLs are allowed, which is what the local profile uses.
+        conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_token ON users(token)"))
         conn.commit()
 
     db = SessionLocal()
-    if not db.query(User).first():
+    if not db.query(User).filter(User.token.is_(None)).first():
         default_user = User(
             name="Vidit",
             age=20, gender="male",

@@ -1,3 +1,14 @@
+---
+title: DesiMacros
+emoji: 🥗
+colorFrom: orange
+colorTo: green
+sdk: docker
+app_port: 8501
+pinned: false
+short_description: Conversational calorie tracker built for Indian diets
+---
+
 # 🥗 DesiMacros — Conversational Calorie Tracker
 
 A calorie and macro tracker built for Indian diets. Log meals by describing them
@@ -21,6 +32,9 @@ has no idea what a katori is.
   targets based on your activity level and whether you're cutting or bulking.
 - **Insights.** Instant rule-based alerts on the day's macros, multi-day pattern
   detection, and an LLM-written weekly summary.
+- **A log per visitor.** On a shared deployment each visitor gets their own
+  entries and goals, keyed by a token the app keeps in the URL. Run it locally
+  with no token and it behaves as a plain single-user app.
 
 ## Stack
 
@@ -64,6 +78,20 @@ this is what a single-service host like Render or Hugging Face Spaces wants:
 docker build -t desimacros . && docker run -p 8501:8501 --env-file .env desimacros
 ```
 
+## Deploying
+
+The image runs both processes in one container, with Streamlit on the public
+port and the API reachable only from inside it, so any single-service host works.
+
+For **Hugging Face Spaces**: create a Docker Space, add `GROQ_API_KEY` (and
+optionally `USDA_API_KEY`) as repository secrets, set `DEMO_MODE=1` as a
+variable, then push this repo to the Space's git remote. The YAML frontmatter at
+the top of this file is the Space config.
+
+Storage on free tiers is ephemeral — logs are cleared whenever the app restarts.
+For a deployment that keeps its history, point `DATABASE_URL` at a hosted
+Postgres instead of SQLite.
+
 ## Configuration
 
 | Variable | Purpose | Default |
@@ -73,6 +101,7 @@ docker build -t desimacros . && docker run -p 8501:8501 --env-file .env desimacr
 | `USDA_API_KEY` | Fallback nutrition lookup | optional |
 | `DATABASE_URL` | SQLAlchemy URL for the log database | `sqlite:///./data/desimacros.db` |
 | `API_BASE_URL` | Where the UI finds the API | `http://localhost:8000` |
+| `DEMO_MODE` | Warn visitors that data resets on restart | off |
 
 ## API
 

@@ -70,6 +70,15 @@ def load_profile(token: str):
     except Exception:
         return {"calorie_goal": 2200, "protein_goal": 100, "carbs_goal": 280, "fat_goal": 70, "name": "User"}
 
+@st.cache_data(ttl=300)
+def load_storage():
+    """Returns "sqlite" when logs are lost on restart, "postgres" when they persist."""
+    try:
+        return httpx.get(f"{API_BASE}/health", timeout=5).json().get("storage", "sqlite")
+    except Exception:
+        return "sqlite"
+
+
 profile = load_profile(USER_TOKEN)
 
 with st.sidebar:
@@ -84,7 +93,7 @@ with st.sidebar:
     st.metric("Carbs", f"{profile.get('carbs_goal', 280):.0f}g")
     st.metric("Fat", f"{profile.get('fat_goal', 70):.0f}g")
     st.divider()
-    if DEMO_MODE:
+    if DEMO_MODE and load_storage() == "sqlite":
         st.caption(
             "This log belongs to your link alone - bookmark the URL to come back to it. "
             "Demo data is cleared whenever the app restarts."

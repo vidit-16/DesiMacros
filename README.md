@@ -80,11 +80,20 @@ container listens on whatever `$PORT` the host sets.
 Hugging Face Spaces works too, but only its Docker SDK can run a process like
 this, and that is a paid tier.
 
+### Keeping history
+
 Storage on free tiers is ephemeral, so SQLite files are cleared whenever the app
-restarts. To keep history, create a free Postgres database (Neon or Supabase) and
-set `DATABASE_URL` to its connection string — paste it as given, including the
-`postgres://` form some providers hand out, and the app points it at the right
-driver itself. Nothing else changes: the schema is created on first boot.
+restarts. To keep logs, put them in a hosted Postgres:
+
+1. Create a free database at [neon.tech](https://neon.tech) or
+   [supabase.com](https://supabase.com) and copy its connection string.
+2. Set `DATABASE_URL` to it in the host's dashboard and redeploy.
+
+Paste the string as given — the `postgres://` form some providers hand out is
+rewritten to the right driver automatically. The schema is created on first
+boot, so there is no migration step. `GET /health` reports `storage` as
+`sqlite` or `postgres`, which is the quickest way to confirm the switch took,
+and the UI stops warning visitors about resets once storage is durable.
 
 With `DATABASE_URL` left alone the app uses SQLite exactly as before, so local
 development needs no database server.
@@ -168,6 +177,10 @@ recommendation for any individual.
 [`docs/DEVELOPING.md`](docs/DEVELOPING.md) has the architecture, conventions and
 the non-obvious traps, and is worth reading before changing the nutrition or
 multi-user logic.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
 
 ## Notes on the data
 

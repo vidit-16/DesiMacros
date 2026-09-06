@@ -80,7 +80,9 @@ corrupted regex once disabled the substring matching here silently, so
 
 **SQLite and Postgres are both supported.** `DATABASE_URL` decides; provider
 URLs in `postgres://` or `postgresql://` form are rewritten to psycopg 3 in
-`_normalize_db_url`. `check_same_thread` is SQLite-only and the in-place column
+`_normalize_db_url`, and `GET /health` reports which backend is live. The UI
+uses that to decide whether to warn visitors that their logs will be cleared,
+so do not let the two drift apart. `check_same_thread` is SQLite-only and the in-place column
 migration is too, since it exists purely to patch older SQLite files. Read env
 vars with `os.getenv("X") or default`, never a default argument — a hosting
 dashboard supplies an empty string for a blank field, and a default argument

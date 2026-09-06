@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from datetime import date, timedelta
 from typing import Optional, List
 
-from app.db.models import init_db, get_db, DailyLog, MealEntry, User
+from app.db.models import init_db, get_db, DailyLog, MealEntry, User, IS_SQLITE
 from app.services.meal_parser import get_meal_parser, MealParserError
 from app.services.nutrition import lookup_nutrition, init_ifct_db
 from app.services.insights import get_daily_alerts, get_weekly_summary, detect_patterns
@@ -129,7 +129,13 @@ def get_current_user(
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "service": "DesiMacros"}
+    # "sqlite" tells the UI that storage is ephemeral on a host with a
+    # temporary disk, so it can warn visitors that logs will not survive.
+    return {
+        "status": "ok",
+        "service": "DesiMacros",
+        "storage": "sqlite" if IS_SQLITE else "postgres",
+    }
 
 
 @app.post("/api/log", response_model=LogMealResponse)

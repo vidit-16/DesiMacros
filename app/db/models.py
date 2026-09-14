@@ -1,8 +1,18 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, Date, DateTime, ForeignKey
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
-from datetime import datetime, date, timezone
 import os
+from datetime import date, datetime, timezone
+
+from sqlalchemy import (
+    Column,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    create_engine,
+)
+from sqlalchemy.orm import declarative_base, relationship, sessionmaker
+
 
 def _normalize_db_url(url: str) -> str:
     """
@@ -98,7 +108,7 @@ def init_db():
         _seed_local_user()
         return
 
-    from sqlalchemy import text, inspect
+    from sqlalchemy import inspect, text
     insp = inspect(engine)
     existing = [c["name"] for c in insp.get_columns("users")]
     new_cols = {

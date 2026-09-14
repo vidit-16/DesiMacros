@@ -1,8 +1,11 @@
-from pydantic_settings import BaseSettings
 from functools import lru_cache
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+
     groq_api_key: str = ""
     usda_api_key: str = ""
     # Groq retires model IDs periodically — override with GROQ_MODEL if this one goes.
@@ -10,10 +13,7 @@ class Settings(BaseSettings):
     app_env: str = "development"
     database_url: str = "sqlite:///./data/desimacros.db"
 
-    class Config:
-        env_file = ".env"
 
-
-@lru_cache()
+@lru_cache
 def get_settings() -> Settings:
     return Settings()

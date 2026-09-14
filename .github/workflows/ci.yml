@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements-dev.txt
+
+      # No API keys are set. The suite mocks Groq and USDA, so a test that
+      # starts reaching for the network will fail here rather than in prod.
+      - name: Tests
+        run: pytest
+
+      - name: Lint
+        # app/ui is excluded: it carries pre-existing style violations and is
+        # added when the Streamlit front end is next touched.
+        run: ruff check app/api app/core app/db app/services tests
+
+  secrets:
+    name: No committed secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: .env is not tracked
+        run: |
+          if git ls-files | grep -E '(^|/)\.env$'; then
+            echo ".env must never be committed; .env.example is the tracked one."
+            exit 1
+          fi
+
+      - name: No API keys in tracked files
+        run: |
+          if git grep -nIE '(gsk_[A-Za-z0-9]{20,}|sk-[A-Za-z0-9]{20,}|AIza[0-9A-Za-z_-]{30,})' -- . ':!*.md'; then
+            echo "A credential-shaped string is committed."
+            exit 1
+          fi

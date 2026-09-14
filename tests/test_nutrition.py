@@ -1,100 +1,215 @@
-"""
-Assertions for the nutrition layer.
-Run from the project root: python -m tests.test_nutrition
+"""Nutrition layer.
 
-Offline: touches only the local IFCT table and pure functions, no API calls.
+Offline: only the local IFCT table and pure functions, no network.
 
 These exist because a corrupted regex once disabled portion matching entirely
-without failing anything - every lookup silently fell back to a 100g default.
+without failing anything — every lookup silently fell back to a 100g default.
 """
 
-import sys
+from __future__ import annotations
+
+import pytest
 
 from app.services.nutrition import (
-    init_ifct_db, lookup_nutrition, search_ifct, unit_to_grams,
-    _piece_weight, _is_plausible_match,
+    _is_plausible_match,
+    _piece_weight,
+    _usda_nutrients,
+    lookup_nutrition,
+    search_ifct,
+    unit_to_grams,
 )
 
-failures = []
+# ── portion weights ──────────────────────────────────────────────────────────
 
 
-def check(label, got, want):
-    if got != want:
-        failures.append(f"{label}: got {got!r}, want {want!r}")
+@pytest.mark.parametrize(
+    "food,grams",
+    [
+        ("roti", 40),
+        ("dosa", 100),
+        ("papad", 13),
+        ("tandoori roti", 40),       # matches inside a longer name
+        ("boiled eggs", 55),         # tolerates a plural
+        ("2 rotis", 40),             # plural inside a longer string
+        ("aloo paratha", 100),       # longest key wins over "paratha"
+        ("something unheard of", None),
+    ],
+)
+def test_piece_weight(food, grams):
+    assert _piece_weight(food) == grams
 
 
-def check_close(label, got, want, tol=0.5):
-    if abs(got - want) > tol:
-        failures.append(f"{label}: got {got!r}, want ~{want!r}")
+def test_piece_weight_of_empty_name_is_unknown():
+    assert _piece_weight("") is None
+    assert _piece_weight(None) is None
 
 
-def main():
-    init_ifct_db()
-
-    # ── portion weights ───────────────────────────────────────────────────────
-    # A counted "piece" means different grams for different foods.
-    check("roti piece", _piece_weight("roti"), 40)
-    check("dosa piece", _piece_weight("dosa"), 100)
-    check("papad piece", _piece_weight("papad"), 13)
-
-    # Matching must work inside a longer name, and across a plural s.
-    check("qualified name", _piece_weight("tandoori roti"), 40)
-    check("plural", _piece_weight("boiled eggs"), 55)
-    check("plural inside name", _piece_weight("2 rotis"), 40)
-    check("unknown food", _piece_weight("something unheard of"), None)
-
-    # Longest key wins, so a stuffed paratha isn't priced as a plain one.
-    check("longest match", _piece_weight("aloo paratha"), 100)
-
-    # ── unit conversion ───────────────────────────────────────────────────────
-    check("2 roti pieces", unit_to_grams("piece", 2, "roti"), 80)
-    check("katori", unit_to_grams("katori", 1, "dal tadka"), 150)
-    check("plate is not 100g", unit_to_grams("plate", 1, "biryani"), 300)
-    check("grams passthrough", unit_to_grams("g", 150, "chicken"), 150)
-    check("unknown unit default", unit_to_grams("blorp", 1, "mystery"), 100)
-    # The unit itself can name the food: "3 rotis".
-    check("unit names the food", unit_to_grams("roti", 3, ""), 120)
-
-    # ── IFCT lookup ───────────────────────────────────────────────────────────
-    check("alias lookup", search_ifct("dahi").food_name, "curd")
-    check("reverse containment", search_ifct("maggi noodles").food_name, "maggi")
-    # Splitting these apart mattered: a paratha carries a paratha's fat.
-    check("roti is not paratha", search_ifct("roti").food_name, "roti")
-    check("masala dosa is its own dish", search_ifct("masala dosa").food_name, "masala dosa")
-    # A bare ingredient must not resolve to whichever dish happens to contain it.
-    check("paneer is not palak paneer", search_ifct("paneer").food_name, "paneer")
-    check("a sandwich is not a bread slice", search_ifct("sandwich").food_name, "veg sandwich")
-    check("paneer sandwich exists", search_ifct("paneer sandwich").food_name, "paneer sandwich")
-
-    # ── scaling ───────────────────────────────────────────────────────────────
-    r = lookup_nutrition("roti", 2, "piece")
-    check("scaled source", r["source"], "ifct")
-    check("scaled grams", r["grams"], 80)
-    check_close("scaled calories", r["calories"], 211.2)
-
-    # ── USDA relevance guard ──────────────────────────────────────────────────
-    # USDA answers every query with something; unrelated matches must be refused.
-    check("rejects unrelated", _is_plausible_match("Oats (Includes foods for USDA's Food Distribution Program)", "unknown food xyz"), False)
-    check("accepts related", _is_plausible_match("Soybean curd", "curd"), True)
-    check("accepts multi-word", _is_plausible_match("CHICKEN BREAST", "chicken breast"), True)
-    check("plural tolerated", _is_plausible_match("Almonds, raw", "almond"), True)
-    # One shared word is not enough - this logged 3.5 sandwiches as palak paneer.
-    check("one shared word is not a match", _is_plausible_match("Palak Paneer", "paneer sandwich"), False)
-    check("different dish rejected", _is_plausible_match("Chicken Biryani", "mutton biryani"), False)
-
-    # ── the reported failure, end to end ──────────────────────────────────────
-    r = lookup_nutrition("paneer sandwich", 3.5, "piece")
-    check("sandwich source", r["source"], "ifct")
-    check("sandwich matched", r["food_name"], "paneer sandwich")
-    check("sandwich grams", r["grams"], 490.0)
-
-    if failures:
-        print(f"FAILED ({len(failures)}):")
-        for f in failures:
-            print("  -", f)
-        sys.exit(1)
-    print("All nutrition checks passed.")
+# ── unit conversion ──────────────────────────────────────────────────────────
 
 
-if __name__ == "__main__":
-    main()
+@pytest.mark.parametrize(
+    "unit,quantity,food,grams",
+    [
+        ("piece", 2, "roti", 80),
+        ("katori", 1, "dal tadka", 150),
+        ("plate", 1, "biryani", 300),      # a plate is a plate, not 100g
+        ("g", 150, "chicken", 150),
+        ("blorp", 1, "mystery", 100),      # unknown unit falls back to 100g
+        ("roti", 3, "", 120),              # the unit itself names the food
+    ],
+)
+def test_unit_to_grams(unit, quantity, food, grams):
+    assert unit_to_grams(unit, quantity, food) == grams
+
+
+# ── IFCT lookup ──────────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "query,expected",
+    [
+        ("dahi", "curd"),                        # alias
+        ("maggi noodles", "maggi"),              # stored name inside the query
+        ("roti", "roti"),                        # not paratha
+        ("masala dosa", "masala dosa"),          # its own dish, not "dosa"
+        ("paneer", "paneer"),                    # not palak paneer
+        ("sandwich", "veg sandwich"),
+        ("paneer sandwich", "paneer sandwich"),
+    ],
+)
+def test_search_ifct(query, expected):
+    assert search_ifct(query).food_name == expected
+
+
+def test_unknown_food_is_not_found():
+    assert search_ifct("unknown food xyz") is None
+
+
+def test_blank_query_is_not_found():
+    assert search_ifct("") is None
+    assert search_ifct(None) is None
+
+
+# ── lookup order: the regression this suite was extended for ─────────────────
+#
+# Aliases used to be consulted *after* substring matching against dish names,
+# so a curated alias lost to any longer dish name containing the same word.
+# "rice" resolved to jeera rice and "paratha" to aloo paratha — wrong dish and
+# wrong macros on two of the most commonly logged foods.
+
+
+@pytest.mark.parametrize(
+    "query,expected",
+    [
+        ("rice", "basmati rice"),      # not jeera rice
+        ("chawal", "basmati rice"),
+        ("paratha", "plain paratha"),  # not aloo paratha
+        ("dal", "dal tadka"),          # not chana dal or moong dal
+        ("egg", "boiled egg"),
+        ("chai", "tea with milk"),
+        ("yogurt", "curd"),
+        ("oatmeal", "oats"),
+        ("bread slice", "white bread"),
+    ],
+)
+def test_curated_aliases_beat_substring_matches(query, expected):
+    assert search_ifct(query).food_name == expected
+
+
+def test_exact_names_still_win_over_their_own_aliases():
+    for name in ("jeera rice", "aloo paratha", "chana dal", "basmati rice"):
+        assert search_ifct(name).food_name == name
+
+
+def test_lookup_does_not_depend_on_tie_break_luck():
+    """Three dal dishes tie at nine characters; the alias decides, not rowid."""
+    assert search_ifct("dal").food_name == "dal tadka"
+
+
+# ── scaling ──────────────────────────────────────────────────────────────────
+
+
+def test_macros_scale_with_portion_size(no_usda):
+    result = lookup_nutrition("roti", 2, "piece")
+    assert result["source"] == "ifct"
+    assert result["grams"] == 80
+    assert result["calories"] == pytest.approx(211.2, abs=0.5)
+
+
+def test_plain_rice_uses_basmati_values(no_usda):
+    """The bug in user-visible terms: a katori of rice, not of jeera rice."""
+    result = lookup_nutrition("rice", 1, "katori")
+    assert result["food_name"] == "basmati rice"
+    assert result["grams"] == 150
+    assert result["calories"] == pytest.approx(195.0, abs=0.5)
+    assert result["fat"] == pytest.approx(0.3, abs=0.1)
+
+
+def test_unknown_food_returns_zeros_and_a_flag(no_usda):
+    result = lookup_nutrition("unknown food xyz", 1, "piece")
+    assert result["source"] == "not_found"
+    assert result["calories"] == 0.0
+    assert result["grams"] == 100      # still reports the portion it assumed
+
+
+def test_the_reported_failure_end_to_end(no_usda):
+    result = lookup_nutrition("paneer sandwich", 3.5, "piece")
+    assert result["source"] == "ifct"
+    assert result["food_name"] == "paneer sandwich"
+    assert result["grams"] == 490.0
+
+
+# ── USDA relevance guard ─────────────────────────────────────────────────────
+#
+# USDA answers every query with something, so unrelated matches must be refused.
+
+
+@pytest.mark.parametrize(
+    "description,query,plausible",
+    [
+        ("Oats (Includes foods for USDA's Food Distribution Program)", "unknown food xyz", False),
+        ("Soybean curd", "curd", True),
+        ("CHICKEN BREAST", "chicken breast", True),
+        ("Almonds, raw", "almond", True),
+        ("Palak Paneer", "paneer sandwich", False),   # logged 3.5 sandwiches as palak paneer
+        ("Chicken Biryani", "mutton biryani", False),
+    ],
+)
+def test_is_plausible_match(description, query, plausible):
+    assert _is_plausible_match(description, query) is plausible
+
+
+def test_empty_query_is_never_plausible():
+    assert _is_plausible_match("Anything At All", "") is False
+
+
+# ── USDA energy units ────────────────────────────────────────────────────────
+
+
+def test_energy_is_read_in_kcal_not_kilojoules():
+    """FDC reports Energy twice. Taking the kJ row inflates calories 4.184x."""
+    nutrients = _usda_nutrients(
+        [
+            {"nutrientName": "Energy", "unitName": "KCAL", "value": 130},
+            {"nutrientName": "Energy", "unitName": "kJ", "value": 544},
+            {"nutrientName": "Protein", "unitName": "G", "value": 2.7},
+        ]
+    )
+    assert nutrients["Energy"] == 130
+    assert nutrients["Protein"] == 2.7
+
+
+def test_kilojoule_only_energy_is_dropped_rather_than_misread():
+    nutrients = _usda_nutrients([{"nutrientName": "Energy", "unitName": "kJ", "value": 544}])
+    assert "Energy" not in nutrients
+
+
+def test_nutrient_entries_without_a_name_are_skipped():
+    assert _usda_nutrients([{"unitName": "KCAL", "value": 99}]) == {}
+
+
+def test_usda_lookup_is_skipped_without_a_key(monkeypatch):
+    from app.services import nutrition
+
+    monkeypatch.setattr(nutrition.settings, "usda_api_key", "")
+    assert nutrition.search_usda("anything") is None

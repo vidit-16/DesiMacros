@@ -6,8 +6,8 @@ Two layers:
 2. LLM weekly summary — Groq generates plain-English feedback from 7-day data
 """
 
-import json
 from groq import Groq
+
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -160,7 +160,6 @@ def detect_patterns(weekly_data: list[dict], goals: dict) -> list[str]:
 
     avg_cal     = sum(d["totals"].get("calories", 0) for d in logged_days) / len(logged_days)
     avg_protein = sum(d["totals"].get("protein", 0) for d in logged_days) / len(logged_days)
-    avg_carbs   = sum(d["totals"].get("carbs", 0) for d in logged_days) / len(logged_days)
 
     cal_goal     = goals.get("calories", 2200)
     protein_goal = goals.get("protein", 100)

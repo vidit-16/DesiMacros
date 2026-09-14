@@ -2,21 +2,23 @@
 DesiMacros FastAPI Backend
 """
 
+import logging
 from contextlib import asynccontextmanager
-
-from fastapi import FastAPI, Depends, HTTPException, Header
-from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.orm import Session
-from sqlalchemy.exc import IntegrityError
-from pydantic import BaseModel
 from datetime import date, timedelta
-from typing import Optional, List
 
-from app.db.models import init_db, get_db, DailyLog, MealEntry, User, IS_SQLITE
-from app.services.meal_parser import get_meal_parser, MealParserError
-from app.services.nutrition import lookup_nutrition, init_ifct_db
-from app.services.insights import get_daily_alerts, get_weekly_summary, detect_patterns
+from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+from app.db.models import IS_SQLITE, DailyLog, MealEntry, User, get_db, init_db
+from app.services.insights import detect_patterns, get_daily_alerts, get_weekly_summary
+from app.services.meal_parser import MealParserError, get_meal_parser
+from app.services.nutrition import init_ifct_db, lookup_nutrition
 from app.services.tdee import calculate_goals
+
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -44,7 +46,7 @@ app.add_middleware(
 
 class LogMealRequest(BaseModel):
     text: str
-    log_date: Optional[str] = None
+    log_date: str | None = None
 
 class MealEntryOut(BaseModel):
     id: int
@@ -63,7 +65,7 @@ class LogMealResponse(BaseModel):
     raw_input: str
     parse_confidence: str
     clarification_needed: str
-    entries: List[MealEntryOut]
+    entries: list[MealEntryOut]
     daily_totals: dict
 
 class ProfileUpdateRequest(BaseModel):
@@ -116,13 +118,114 @@ def get_current_user(
             # Another request created this visitor first - take theirs.
             db.rollback()
             user = db.query(User).filter(User.token == x_user_token).first()
+            if not user:
+                # Neither the insert nor the re-read produced a row. Returning
+                # None here used to surface as AttributeError on user.id inside
+                # whichever endpoint was called.
+                raise HTTPException(
+                    status_code=500, detail="Could not create or load your profile."
+                ) from None
         return user
 
     user = db.query(User).filter(User.token.is_(None)).first()
     if not user:
-        raise HTTPException(status_code=500, detail="No local profile found. Restart the API to seed one.")
+        raise HTTPException(
+        status_code=500,
+        detail="No local profile found. Restart the API to seed one.",
+    )
     return user
 
+
+
+# ── Shared helpers ─────────────────────────────────────────────────────────────
+
+WEEK_LENGTH = 7
+
+
+def _parse_date(value: str | None, field: str) -> date | None:
+    """Parse a YYYY-MM-DD query parameter, or reject it with a 400.
+
+    Every endpoint that takes a date goes through this. Parsing inline meant an
+    unparseable date raised ValueError and surfaced as a 500, so a typo in the
+    UI looked like a server fault.
+    """
+    if not value:
+        return None
+    try:
+        return date.fromisoformat(value)
+    except ValueError:
+        raise HTTPException(
+            status_code=400, detail=f"Invalid {field}. Use YYYY-MM-DD."
+        ) from None
+
+
+def _entries_between(db: Session, user: User, start: date, end: date) -> list[MealEntry]:
+    """Every meal entry for a user within an inclusive date range."""
+    return (
+        db.query(MealEntry)
+        .join(DailyLog)
+        .filter(
+            DailyLog.user_id == user.id,
+            DailyLog.log_date >= start,
+            DailyLog.log_date <= end,
+        )
+        .all()
+    )
+
+
+def _entries_on(db: Session, user: User, target_date: date) -> list[MealEntry]:
+    return _entries_between(db, user, target_date, target_date)
+
+
+def _week_window(today: date | None = None) -> tuple[date, date]:
+    """The seven-day window ending today, inclusive."""
+    end = today or date.today()
+    return end - timedelta(days=WEEK_LENGTH - 1), end
+
+
+def _weekly_rows(db: Session, user: User) -> list[dict]:
+    """One row per day for the last week, oldest first.
+
+    Built from a single query. The three weekly endpoints each used to run
+    seven queries of their own, with the loop body copy-pasted between them.
+    """
+    start, end = _week_window()
+
+    by_date: dict[date, list[MealEntry]] = {}
+    for entry in _entries_between(db, user, start, end):
+        by_date.setdefault(entry.daily_log.log_date, []).append(entry)
+
+    rows = []
+    for offset in range(WEEK_LENGTH):
+        day = start + timedelta(days=offset)
+        entries = by_date.get(day, [])
+        rows.append({
+            "date": str(day),
+            "totals": _compute_totals(entries, user),
+            "logged": len(entries) > 0,
+        })
+    return rows
+
+
+def _user_goals(user: User) -> dict:
+    """Goal names as the insights module expects them."""
+    return {
+        "calories": user.calorie_goal,
+        "protein": user.protein_goal,
+        "carbs": user.carbs_goal,
+        "fat": user.fat_goal,
+    }
+
+
+def _entry_dict(entry: MealEntry, include_source: bool = False) -> dict:
+    payload = {
+        "id": entry.id, "food_name": entry.food_name, "quantity": entry.quantity,
+        "unit": entry.unit, "calories": entry.calories, "protein": entry.protein,
+        "carbs": entry.carbs, "fat": entry.fat,
+    }
+    if include_source:
+        payload["source"] = entry.source
+    return payload
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
@@ -139,19 +242,26 @@ def health():
 
 
 @app.post("/api/log", response_model=LogMealResponse)
-def log_meal(req: LogMealRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    try:
-        log_date = date.fromisoformat(req.log_date) if req.log_date else date.today()
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD.")
+def log_meal(
+    req: LogMealRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    log_date = _parse_date(req.log_date, "log_date") or date.today()
+
+    if not req.text.strip():
+        raise HTTPException(status_code=422, detail="Tell me what you ate.")
 
     try:
         parser = get_meal_parser()
         parsed = parser.parse(req.text)
     except MealParserError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        raise HTTPException(status_code=503, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=502, detail=f"Could not parse that meal: {e}")
+        # The parser handles bad model output itself, so anything reaching here
+        # is unexpected. Log it rather than only reporting it to the caller.
+        logger.exception("meal parsing failed")
+        raise HTTPException(status_code=502, detail=f"Could not parse that meal: {e}") from e
 
     if not parsed.items:
         raise HTTPException(
@@ -203,15 +313,25 @@ def log_meal(req: LogMealRequest, db: Session = Depends(get_db), user: User = De
         raw_input=req.text,
         parse_confidence=parsed.parse_confidence,
         clarification_needed=parsed.clarification_needed,
-        entries=[MealEntryOut(**{k: getattr(e, k) for k in MealEntryOut.model_fields}) for e in saved_entries],
+        entries=[
+            MealEntryOut(**{k: getattr(e, k) for k in MealEntryOut.model_fields})
+            for e in saved_entries
+        ],
         daily_totals=daily_totals,
     )
 
 
 @app.get("/api/history")
-def get_history(start_date: Optional[str] = None, end_date: Optional[str] = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    end = date.fromisoformat(end_date) if end_date else date.today()
-    start = date.fromisoformat(start_date) if start_date else end - timedelta(days=6)
+def get_history(
+    start_date: str | None = None, end_date: str | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    end = _parse_date(end_date, "end_date") or date.today()
+    start = _parse_date(start_date, "start_date") or end - timedelta(days=WEEK_LENGTH - 1)
+
+    if start > end:
+        raise HTTPException(status_code=400, detail="start_date is after end_date.")
 
     logs = (
         db.query(DailyLog)
@@ -233,10 +353,7 @@ def get_history(start_date: Optional[str] = None, end_date: Optional[str] = None
             day["raw_inputs"].append(log.raw_input)
         for e in log.meal_entries:
             entries_by_date[key].append(e)
-            day["entries"].append({
-                "id": e.id, "food_name": e.food_name, "quantity": e.quantity, "unit": e.unit,
-                "calories": e.calories, "protein": e.protein, "carbs": e.carbs, "fat": e.fat,
-            })
+            day["entries"].append(_entry_dict(e))
 
     result = []
     for key, day in days.items():
@@ -247,29 +364,27 @@ def get_history(start_date: Optional[str] = None, end_date: Optional[str] = None
 
 
 @app.get("/api/summary")
-def get_summary(log_date: Optional[str] = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    target_date = date.fromisoformat(log_date) if log_date else date.today()
-
-    entries = (
-        db.query(MealEntry)
-        .join(DailyLog)
-        .filter(DailyLog.log_date == target_date, DailyLog.user_id == user.id)
-        .all()
-    )
+def get_summary(
+    log_date: str | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    target_date = _parse_date(log_date, "log_date") or date.today()
+    entries = _entries_on(db, user, target_date)
 
     return {
         "date": str(target_date),
         "totals": _compute_totals(entries, user),
-        "entries": [{
-            "id": e.id, "food_name": e.food_name, "quantity": e.quantity, "unit": e.unit,
-            "calories": e.calories, "protein": e.protein, "carbs": e.carbs, "fat": e.fat,
-            "source": e.source,
-        } for e in entries],
+        "entries": [_entry_dict(e, include_source=True) for e in entries],
     }
 
 
 @app.delete("/api/entry/{entry_id}")
-def delete_entry(entry_id: int, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def delete_entry(
+    entry_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     """Remove a single mis-logged meal entry."""
     entry = (
         db.query(MealEntry)
@@ -296,77 +411,53 @@ def delete_entry(entry_id: int, db: Session = Depends(get_db), user: User = Depe
 
 
 @app.get("/api/weekly")
-def get_weekly(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    today = date.today()
-
-    weekly = []
-    for i in range(6, -1, -1):
-        d = today - timedelta(days=i)
-        entries = (
-            db.query(MealEntry)
-            .join(DailyLog)
-            .filter(DailyLog.log_date == d, DailyLog.user_id == user.id)
-            .all()
-        )
-        totals = _compute_totals(entries, user)
-        weekly.append({"date": str(d), "totals": totals, "logged": len(entries) > 0})
-
-    return {"weekly": weekly, "goals": {
-        "calories": user.calorie_goal,
-        "protein": user.protein_goal,
-        "carbs": user.carbs_goal,
-        "fat": user.fat_goal,
-    }}
+def get_weekly(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return {"weekly": _weekly_rows(db, user), "goals": _user_goals(user)}
 
 
 @app.get("/api/alerts")
-def get_alerts(log_date: Optional[str] = None, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    target_date = date.fromisoformat(log_date) if log_date else date.today()
-
-    entries = (
-        db.query(MealEntry)
-        .join(DailyLog)
-        .filter(DailyLog.log_date == target_date, DailyLog.user_id == user.id)
-        .all()
-    )
-    totals = _compute_totals(entries, user)
-    goals = {"calorie_goal": user.calorie_goal, "protein_goal": user.protein_goal, "carbs_goal": user.carbs_goal, "fat_goal": user.fat_goal}
+def get_alerts(
+    log_date: str | None = None,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    target_date = _parse_date(log_date, "log_date") or date.today()
+    totals = _compute_totals(_entries_on(db, user, target_date), user)
+    goals = {
+        "calorie_goal": user.calorie_goal, "protein_goal": user.protein_goal,
+        "carbs_goal": user.carbs_goal, "fat_goal": user.fat_goal,
+    }
     return {"date": str(target_date), "alerts": get_daily_alerts(totals, goals), "totals": totals}
 
 
 @app.get("/api/weekly-summary")
-def weekly_summary(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    today = date.today()
-
-    weekly = []
-    for i in range(6, -1, -1):
-        d = today - timedelta(days=i)
-        entries = (db.query(MealEntry).join(DailyLog).filter(DailyLog.log_date == d, DailyLog.user_id == user.id).all())
-        totals = _compute_totals(entries, user)
-        weekly.append({"date": str(d), "totals": totals, "logged": len(entries) > 0})
-
-    goals = {"calories": user.calorie_goal, "protein": user.protein_goal, "carbs": user.carbs_goal, "fat": user.fat_goal}
-    summary = get_weekly_summary(weekly, goals)
-    return {"summary": summary, "days_logged": sum(1 for d in weekly if d["logged"])}
+def weekly_summary(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    weekly = _weekly_rows(db, user)
+    return {
+        "summary": get_weekly_summary(weekly, _user_goals(user)),
+        "days_logged": sum(1 for day in weekly if day["logged"]),
+    }
 
 
 @app.get("/api/patterns")
-def weekly_patterns(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    today = date.today()
-
-    weekly = []
-    for i in range(6, -1, -1):
-        d = today - timedelta(days=i)
-        entries = (db.query(MealEntry).join(DailyLog).filter(DailyLog.log_date == d, DailyLog.user_id == user.id).all())
-        totals = _compute_totals(entries, user)
-        weekly.append({"date": str(d), "totals": totals, "logged": len(entries) > 0})
-
-    goals = {"calories": user.calorie_goal, "protein": user.protein_goal, "carbs": user.carbs_goal, "fat": user.fat_goal}
-    return {"patterns": detect_patterns(weekly, goals)}
+def weekly_patterns(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    return {"patterns": detect_patterns(_weekly_rows(db, user), _user_goals(user))}
 
 
 @app.get("/api/profile")
-def get_profile(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def get_profile(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     return {
         "name": user.name,
         "age": user.age,
@@ -383,8 +474,11 @@ def get_profile(db: Session = Depends(get_db), user: User = Depends(get_current_
 
 
 @app.post("/api/profile")
-def update_profile(req: ProfileUpdateRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-
+def update_profile(
+    req: ProfileUpdateRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     user.name = req.name
     user.age = req.age
     user.gender = req.gender
@@ -393,7 +487,10 @@ def update_profile(req: ProfileUpdateRequest, db: Session = Depends(get_db), use
     user.activity_level = req.activity_level
     user.goal_type = req.goal_type
 
-    goals = calculate_goals(req.weight_kg, req.height_cm, req.age, req.gender, req.activity_level, req.goal_type)
+    goals = calculate_goals(
+        req.weight_kg, req.height_cm, req.age,
+        req.gender, req.activity_level, req.goal_type,
+    )
 
     user.calorie_goal = goals["target_calories"]
     user.protein_goal = goals["protein_g"]
@@ -415,7 +512,10 @@ def update_profile(req: ProfileUpdateRequest, db: Session = Depends(get_db), use
 
 @app.post("/api/tdee-preview")
 def tdee_preview(req: ProfileUpdateRequest):
-    return calculate_goals(req.weight_kg, req.height_cm, req.age, req.gender, req.activity_level, req.goal_type)
+    return calculate_goals(
+        req.weight_kg, req.height_cm, req.age,
+        req.gender, req.activity_level, req.goal_type,
+    )
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -429,6 +529,10 @@ def _compute_totals(entries, user) -> dict:
         "fiber": round(sum(e.fiber for e in entries), 1),
     }
     totals["calories_remaining"] = round(user.calorie_goal - totals["calories"], 1)
-    totals["protein_pct"] = round((totals["protein"] / user.protein_goal) * 100) if user.protein_goal else 0
-    totals["calorie_pct"] = round((totals["calories"] / user.calorie_goal) * 100) if user.calorie_goal else 0
+    totals["protein_pct"] = (
+        round((totals["protein"] / user.protein_goal) * 100) if user.protein_goal else 0
+    )
+    totals["calorie_pct"] = (
+        round((totals["calories"] / user.calorie_goal) * 100) if user.calorie_goal else 0
+    )
     return totals

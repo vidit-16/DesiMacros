@@ -13,10 +13,11 @@ Handles:
 
 import json
 import re
+
 from groq import Groq
-from app.core.config import get_settings
 from pydantic import BaseModel
-from typing import List
+
+from app.core.config import get_settings
 
 settings = get_settings()
 
@@ -31,7 +32,7 @@ class ParsedMealItem(BaseModel):
     notes: str = ""            # e.g. "with less oil", "homemade"
 
 class ParsedMealResponse(BaseModel):
-    items: List[ParsedMealItem]
+    items: list[ParsedMealItem]
     raw_input: str
     parse_confidence: str      # "high", "medium", "low"
     clarification_needed: str = ""  # if the LLM isn't sure about something

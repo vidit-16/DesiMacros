@@ -10,17 +10,23 @@ approximate nutrition per 100g (based on NIN IFCT 2017 publication).
 For production, you'd load the full IFCT dataset.
 """
 
+import logging
+import os
 import re
 import sqlite3
-import httpx
-import os
 from dataclasses import dataclass
-from typing import Optional
+
+import httpx
+
 from app.core.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
-IFCT_DB_PATH = "data/ifct.db"
+# Overridable so tests can point at a temporary database instead of the one the
+# running app uses.
+IFCT_DB_PATH = os.getenv("IFCT_DB_PATH", "data/ifct.db")
 
 
 @dataclass
@@ -87,12 +93,15 @@ IFCT_SEED_DATA = [
     ("filter coffee",   "south indian coffee,kaapi,milk coffee",    60, 1.8,  8.5, 2.0, 0.0),
     ("paneer",          "cottage cheese,fresh paneer,malai paneer", 296,18.3,  1.2,22.8, 0.0),
     ("paneer sandwich", "grilled paneer sandwich,paneer toast",     260,10.5, 26.0,11.5, 2.0),
-    ("veg sandwich",    "sandwich,vegetable sandwich,grilled sandwich,club sandwich", 220, 6.0, 30.0, 7.5, 2.5),
+    ("veg sandwich",    "sandwich,vegetable sandwich,grilled sandwich,club sandwich",
+                                                                   220, 6.0, 30.0, 7.5, 2.5),
 ]
 
 def init_ifct_db():
     """Create and seed the IFCT SQLite database."""
-    os.makedirs("data", exist_ok=True)
+    parent = os.path.dirname(IFCT_DB_PATH)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
     conn = sqlite3.connect(IFCT_DB_PATH)
     c = conn.cursor()
     c.execute("""
@@ -127,49 +136,71 @@ def init_ifct_db():
     conn.close()
 
 
-def search_ifct(food_name: str) -> Optional[NutritionPer100g]:
-    """Search IFCT database. Tries exact match, then alias match."""
+def search_ifct(food_name: str) -> NutritionPer100g | None:
+    """Find a food in the IFCT table.
+
+    Order matters, and it is deliberate:
+
+    1. Exact name.
+    2. Exact alias. Aliases are curated: "rice" is recorded as an alias of
+       basmati rice precisely so that logging "rice" means plain rice.
+    3. A stored name inside the query, longest first, so "maggi noodles" finds
+       "maggi" and "masala dosa" beats "dosa".
+    4. Only then the fuzzy step: the query inside a stored name.
+
+    Steps 2 and 4 used to be the other way round, which meant a curated alias
+    could never win against any longer dish name that happened to contain the
+    same word. "rice" resolved to jeera rice and "paratha" to aloo paratha:
+    wrong dish, wrong macros, on two of the most commonly logged foods.
+
+    Ties are broken by name length and then alphabetically, so the result never
+    depends on insertion order.
+    """
+    query = (food_name or "").lower().strip()
+    if not query:
+        return None
+
+    columns = "SELECT name, calories, protein, carbs, fat, fiber FROM ifct_foods "
     conn = sqlite3.connect(IFCT_DB_PATH)
-    c = conn.cursor()
-    query = food_name.lower().strip()
+    try:
+        c = conn.cursor()
 
-    # 1. Exact name match
-    row = c.execute(
-        "SELECT name, calories, protein, carbs, fat, fiber FROM ifct_foods WHERE LOWER(name) = ?",
-        (query,)
-    ).fetchone()
+        # 1. Exact name.
+        row = c.execute(columns + "WHERE LOWER(name) = ?", (query,)).fetchone()
 
-    # 2. Name contains query, shortest (closest) name first so the result does
-    #    not depend on insertion order.
-    if not row:
-        row = c.execute(
-            "SELECT name, calories, protein, carbs, fat, fiber FROM ifct_foods "
-            "WHERE LOWER(name) LIKE ? ORDER BY LENGTH(name) ASC LIMIT 1",
-            (f"%{query}%",)
-        ).fetchone()
+        # 2. Exact alias. Aliases are stored comma-separated, so the comparison
+        #    is wrapped in commas: matching the bare substring would let a query
+        #    match across two unrelated aliases.
+        if not row:
+            row = c.execute(
+                columns + "WHERE ',' || REPLACE(LOWER(aliases), ', ', ',') || ',' LIKE ? "
+                "ORDER BY LENGTH(name) ASC, name ASC LIMIT 1",
+                (f"%,{query},%",),
+            ).fetchone()
 
-    # 3. Alias match
-    if not row:
-        row = c.execute(
-            "SELECT name, calories, protein, carbs, fat, fiber FROM ifct_foods WHERE LOWER(aliases) LIKE ?",
-            (f"%{query}%",)
-        ).fetchone()
+        # 3. A stored name inside the query. Longest wins.
+        if not row:
+            row = c.execute(
+                columns + "WHERE ? LIKE '%' || LOWER(name) || '%' "
+                "ORDER BY LENGTH(name) DESC, name ASC LIMIT 1",
+                (query,),
+            ).fetchone()
 
-    # 4. The other direction: a stored name inside the query, so "maggi noodles"
-    #    finds "maggi". Longest name wins, so "masala dosa" beats "dosa".
-    if not row:
-        row = c.execute(
-            "SELECT name, calories, protein, carbs, fat, fiber FROM ifct_foods "
-            "WHERE ? LIKE '%' || LOWER(name) || '%' ORDER BY LENGTH(name) DESC LIMIT 1",
-            (query,)
-        ).fetchone()
-
-    conn.close()
+        # 4. Fuzzy: the query inside a stored name. Shortest wins, as the
+        #    closest thing to the query.
+        if not row:
+            row = c.execute(
+                columns + "WHERE LOWER(name) LIKE ? "
+                "ORDER BY LENGTH(name) ASC, name ASC LIMIT 1",
+                (f"%{query}%",),
+            ).fetchone()
+    finally:
+        conn.close()
 
     if row:
         return NutritionPer100g(
             food_name=row[0], calories=row[1], protein=row[2],
-            carbs=row[3], fat=row[4], fiber=row[5], source="ifct"
+            carbs=row[3], fat=row[4], fiber=row[5], source="ifct",
         )
     return None
 
@@ -208,7 +239,26 @@ def _is_plausible_match(description: str, query: str) -> bool:
     return q_words <= words(description)
 
 
-def search_usda(food_name: str) -> Optional[NutritionPer100g]:
+def _usda_nutrients(entries: list) -> dict:
+    """Flatten USDA's nutrient list, keeping calories in kcal.
+
+    FDC reports Energy twice for many foods, once in KCAL and once in kJ. A
+    plain name-to-value dict keeps whichever came last, so a food could be
+    logged at 4.184x its real calories. Energy is therefore only accepted from
+    a KCAL row.
+    """
+    nutrients: dict = {}
+    for entry in entries:
+        name = entry.get("nutrientName")
+        if not name:
+            continue
+        if name == "Energy" and (entry.get("unitName") or "").upper() != "KCAL":
+            continue
+        nutrients[name] = entry.get("value", 0)
+    return nutrients
+
+
+def search_usda(food_name: str) -> NutritionPer100g | None:
     """Search USDA FoodData Central API."""
     if not settings.usda_api_key:
         return None
@@ -228,7 +278,7 @@ def search_usda(food_name: str) -> Optional[NutritionPer100g]:
         if not _is_plausible_match(description, food_name):
             return None
 
-        nutrients = {n["nutrientName"]: n["value"] for n in food.get("foodNutrients", [])}
+        nutrients = _usda_nutrients(food.get("foodNutrients", []))
 
         return NutritionPer100g(
             food_name=description,
@@ -240,6 +290,7 @@ def search_usda(food_name: str) -> Optional[NutritionPer100g]:
             source="usda",
         )
     except Exception:
+        logger.warning("USDA lookup failed for %r", food_name, exc_info=True)
         return None
 
 
@@ -283,7 +334,7 @@ PIECE_WEIGHTS = {
     "masala dosa": 150, "paneer sandwich": 140, "veg sandwich": 130, "sandwich": 130,
     "paratha": 80, "plain paratha": 80, "aloo paratha": 100,
     "poori": 30, "puri": 30, "naan": 90, "kulcha": 80,
-    "idli": 40, "dosa": 100, "masala dosa": 150, "vada": 45, "dhokla": 40,
+    "idli": 40, "dosa": 100, "vada": 45, "dhokla": 40,
     "boiled egg": 55, "egg": 55, "omelette": 120, "scrambled eggs": 120,
     "bread": 30, "white bread": 30, "bread slice": 30, "toast": 30,
     "banana": 120, "apple": 182, "orange": 130, "mango": 200,
@@ -299,7 +350,7 @@ GENERIC_COUNT_UNITS = {
 }
 
 
-def _piece_weight(food_name: str) -> Optional[float]:
+def _piece_weight(food_name: str) -> float | None:
     """Grams for one piece of a named food, or None if we don't know it."""
     name = (food_name or "").lower().strip()
     if not name:

@@ -34,49 +34,50 @@ def get_daily_alerts(totals: dict, goals: dict) -> list[str]:
 
     # Calorie alerts
     if cal < cal_goal * 0.5:
-        alerts.append(f"⚠️ You've only had {cal:.0f} kcal today — that's less than half your goal. Don't skip meals.")
+        alerts.append(f"Calories are at {cal:.0f} kcal, less than half of your {cal_goal:.0f} kcal target.")
     elif cal < cal_goal * 0.75:
-        alerts.append(f"📉 You're at {cal:.0f} kcal — still {cal_goal - cal:.0f} kcal to go for today.")
+        alerts.append(f"Calories are at {cal:.0f} kcal, {cal_goal - cal:.0f} kcal below your target.")
     elif cal > cal_goal * 1.2:
-        alerts.append(f"📈 You've exceeded your calorie goal by {cal - cal_goal:.0f} kcal today.")
+        alerts.append(f"Calories are {cal - cal_goal:.0f} kcal above your target.")
 
     # Protein alerts
     if protein < protein_goal * 0.5:
-        alerts.append(f"🥩 Protein is very low ({protein:.0f}g). Try adding dal, paneer, eggs, or curd to your next meal.")
+        alerts.append(f"Protein is low at {protein:.0f} g. Dal, paneer, eggs or curd are good sources for the next meal.")
     elif protein < protein_goal * 0.75:
-        alerts.append(f"💪 Protein at {protein:.0f}g — {protein_goal - protein:.0f}g short of your goal. A katori of dal or an egg would help.")
+        alerts.append(f"Protein is at {protein:.0f} g, {protein_goal - protein:.0f} g below your target. A katori of dal or an egg would close part of the gap.")
 
     # Carb alerts
     if carbs > carbs_goal * 1.3:
-        alerts.append(f"🍚 Carbs are high today ({carbs:.0f}g vs {carbs_goal:.0f}g goal) — mostly from rice or roti, likely.")
+        alerts.append(f"Carbohydrates are high at {carbs:.0f} g against a {carbs_goal:.0f} g target.")
 
     # Fat alerts
     if fat > fat_goal * 1.3:
-        alerts.append(f"🧈 Fat intake is high ({fat:.0f}g vs {fat_goal:.0f}g goal). Watch out for heavy sabzis or fried stuff.")
+        alerts.append(f"Fat is high at {fat:.0f} g against a {fat_goal:.0f} g target. Fried food and oil-heavy dishes are the usual sources.")
 
     # Positive reinforcement
     if not alerts:
         if protein >= protein_goal * 0.9:
-            alerts.append(f"✅ Great protein day — {protein:.0f}g, almost at goal!")
+            alerts.append(f"Protein is at {protein:.0f} g, within 10% of your target.")
         else:
-            alerts.append("✅ Looking balanced today, keep it up!")
+            alerts.append("Calories and macronutrients are within the expected range for today.")
 
     return alerts
 
 
 # ── LLM Weekly Summary ────────────────────────────────────────────────────────
 
-WEEKLY_SYSTEM_PROMPT = """You are a nutrition coach who specialises in Indian diets.
-You will receive 7 days of macro data for a user and their daily goals.
-Write a short, conversational weekly summary (4-6 sentences max).
+WEEKLY_SYSTEM_PROMPT = """You are a nutrition assistant familiar with Indian diets.
+You will receive 7 days of calorie and macronutrient data for a user, and their daily targets.
+Write a short weekly summary of 4 to 6 sentences.
 
 Rules:
-- Be specific — mention actual numbers and patterns you see
-- Reference Indian foods naturally (dal, paneer, roti, rice, etc.)
-- Give 1-2 actionable suggestions, not a lecture
-- Be encouraging but honest
-- No bullet points, no headers — just natural flowing text like a WhatsApp message from a coach
+- Be specific: cite the actual numbers and patterns in the data
+- Refer to Indian foods where relevant (dal, paneer, roti, rice)
+- Give one or two practical suggestions
+- Use a clear, professional tone that anyone can follow
+- Plain prose only: no bullet points, headings or emojis
 - Keep it under 100 words
+- Do not give medical advice
 """
 
 WEEKLY_USER_PROMPT = """Here is the user's weekly data:
@@ -128,7 +129,7 @@ def get_weekly_summary(weekly_data: list[dict], goals: dict) -> str:
 
     try:
         if not settings.groq_api_key:
-            return "Set GROQ_API_KEY in your .env to get an AI weekly summary."
+            return "Weekly summaries are not available because the language model service is not configured."
         client = Groq(api_key=settings.groq_api_key)
         response = client.chat.completions.create(
             model=settings.groq_model,
@@ -142,7 +143,7 @@ def get_weekly_summary(weekly_data: list[dict], goals: dict) -> str:
         return response.choices[0].message.content.strip()
 
     except Exception as e:
-        return f"Could not generate summary: {str(e)}"
+        return f"The weekly summary could not be generated: {str(e)}"
 
 
 # ── Pattern detection ─────────────────────────────────────────────────────────
@@ -156,7 +157,7 @@ def detect_patterns(weekly_data: list[dict], goals: dict) -> list[str]:
     logged_days = [d for d in weekly_data if d.get("logged")]
 
     if len(logged_days) < 3:
-        return ["Log at least 3 days to see patterns."]
+        return ["Patterns appear once meals have been logged on at least 3 days."]
 
     avg_cal     = sum(d["totals"].get("calories", 0) for d in logged_days) / len(logged_days)
     avg_protein = sum(d["totals"].get("protein", 0) for d in logged_days) / len(logged_days)
@@ -167,28 +168,28 @@ def detect_patterns(weekly_data: list[dict], goals: dict) -> list[str]:
     # Low protein pattern
     low_protein_days = [d for d in logged_days if d["totals"].get("protein", 0) < protein_goal * 0.6]
     if len(low_protein_days) >= 3:
-        patterns.append(f"🔴 Low protein on {len(low_protein_days)} of {len(logged_days)} logged days (avg {avg_protein:.0f}g vs {protein_goal:.0f}g goal). Add a protein source to every meal.")
+        patterns.append(f"Protein was low on {len(low_protein_days)} of {len(logged_days)} logged days, averaging {avg_protein:.0f} g against a {protein_goal:.0f} g target. Including a protein source in each meal would help.")
 
     # Consistent under-eating
     low_cal_days = [d for d in logged_days if d["totals"].get("calories", 0) < cal_goal * 0.7]
     if len(low_cal_days) >= 3:
-        patterns.append(f"⚠️ Under-eating on {len(low_cal_days)} days — you might be skipping lunch on busy college days.")
+        patterns.append(f"Calories were well below target on {len(low_cal_days)} days. Check whether any meals went unlogged or were skipped.")
 
     # Good consistency
     if len(logged_days) >= 6:
-        patterns.append(f"🟢 Great consistency — logged {len(logged_days)}/7 days this week!")
+        patterns.append(f"Meals were logged on {len(logged_days)} of 7 days this week.")
     elif len(logged_days) >= 4:
-        patterns.append(f"🟡 Logged {len(logged_days)}/7 days — try to log every day for better insights.")
+        patterns.append(f"Meals were logged on {len(logged_days)} of 7 days. Logging every day gives more reliable trends.")
     else:
-        patterns.append(f"🔴 Only {len(logged_days)}/7 days logged — more data = better insights.")
+        patterns.append(f"Meals were logged on only {len(logged_days)} of 7 days, so these trends are less reliable.")
 
     # Avg calorie summary
     diff = avg_cal - cal_goal
     if abs(diff) < 150:
-        patterns.append(f"✅ Average daily calories ({avg_cal:.0f} kcal) is right on target.")
+        patterns.append(f"Average daily calories were {avg_cal:.0f} kcal, within 150 kcal of your target.")
     elif diff < 0:
-        patterns.append(f"📉 Averaging {avg_cal:.0f} kcal/day — {abs(diff):.0f} below your goal on average.")
+        patterns.append(f"Average daily calories were {avg_cal:.0f} kcal, {abs(diff):.0f} kcal below your target.")
     else:
-        patterns.append(f"📈 Averaging {avg_cal:.0f} kcal/day — {diff:.0f} above your goal on average.")
+        patterns.append(f"Average daily calories were {avg_cal:.0f} kcal, {diff:.0f} kcal above your target.")
 
     return patterns

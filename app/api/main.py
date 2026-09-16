@@ -5,10 +5,11 @@ DesiMacros FastAPI Backend
 import logging
 from contextlib import asynccontextmanager
 from datetime import date, timedelta
+from typing import Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -69,13 +70,16 @@ class LogMealResponse(BaseModel):
     daily_totals: dict
 
 class ProfileUpdateRequest(BaseModel):
-    name: str = "Vidit"
-    age: int = 20
-    gender: str = "male"
-    height_cm: float = 170.0
-    weight_kg: float = 65.0
-    activity_level: str = "moderate"
-    goal_type: str = "maintain"
+    # Bounds reject values the formulas cannot use: a height of 0 used to raise
+    # ZeroDivisionError in the BMI step (a 500), and a negative weight produced
+    # negative calorie targets that were then saved to the profile.
+    name: str = Field("Vidit", max_length=100)
+    age: int = Field(20, ge=10, le=120)
+    gender: Literal["male", "female"] = "male"
+    height_cm: float = Field(170.0, ge=50, le=280)
+    weight_kg: float = Field(65.0, ge=20, le=400)
+    activity_level: Literal["sedentary", "light", "moderate", "active", "very_active"] = "moderate"
+    goal_type: Literal["cut", "mild_cut", "maintain", "mild_bulk", "bulk"] = "maintain"
 
 
 # ── Current visitor ────────────────────────────────────────────────────────────

@@ -28,12 +28,24 @@ jobs:
       # No API keys are set. The suite mocks Groq and USDA, so a test that
       # starts reaching for the network will fail here rather than in prod.
       - name: Tests
-        run: pytest
+        run: pytest --cov=app --cov-report=term-missing
 
       - name: Lint
         # app/ui is excluded: it carries pre-existing style violations and is
         # added when the Streamlit front end is next touched.
-        run: ruff check app/api app/core app/db app/services tests
+        run: ruff check app/api app/core app/db app/services tests scripts evaluation
+
+  docker:
+    name: Docker build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: desimacros:ci
 
   secrets:
     name: No committed secrets

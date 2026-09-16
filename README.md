@@ -1,5 +1,9 @@
 # 🥗 DesiMacros — Conversational Calorie Tracker
 
+[![CI](https://github.com/vidit-16/DesiMacros/actions/workflows/ci.yml/badge.svg)](https://github.com/vidit-16/DesiMacros/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
+
 A calorie and macro tracker built for Indian diets. Log meals by describing them
 in plain English — "2 rotis with dal tadka and a katori of dahi" — and it works
 out the portions, macros and daily totals for you.
@@ -24,6 +28,20 @@ has no idea what a katori is.
 - **A log per visitor.** On a shared deployment each visitor gets their own
   entries and goals, keyed by a token the app keeps in the URL. Run it locally
   with no token and it behaves as a plain single-user app.
+
+## Architecture
+
+```mermaid
+flowchart LR
+    U[User] --> UI[Streamlit UI]
+    UI -->|HTTP| API[FastAPI]
+    API --> P[meal_parser] -->|LLM| G[(Groq)]
+    API --> N[nutrition] --> I[(IFCT SQLite)]
+    N -->|fallback| USDA[(USDA FDC)]
+    API --> T[tdee]
+    API --> INS[insights]
+    API --> DB[(SQLite / Postgres)]
+```
 
 ## Stack
 
@@ -132,40 +150,49 @@ development needs no database server.
 ## Project structure
 
 ```
-calorie-tracker/
+DesiMacros/
 ├── app/
-│   ├── api/main.py            # FastAPI routes
+│   ├── api/main.py            # FastAPI routes + request validation
 │   ├── core/config.py         # Settings from .env
 │   ├── db/models.py           # SQLAlchemy models + migrations
-│   ├── services/
-│   │   ├── meal_parser.py     # LLM text → structured meal items
-│   │   ├── nutrition.py       # IFCT + USDA lookup, portion sizes
-│   │   ├── tdee.py            # BMR / TDEE / macro targets
-│   │   └── insights.py        # Alerts, patterns, weekly summary
+│   ├── services/              # meal_parser, nutrition, tdee, insights
 │   └── ui/streamlit_app.py    # Streamlit frontend
-├── data/                      # SQLite DBs, created on first run
-├── docs/
-│   ├── ACCURACY.md            # where the numbers come from, and their limits
-│   └── DEVELOPING.md          # architecture, conventions, known traps
-├── tests/
-│   ├── test_nutrition.py      # offline assertions
-│   └── test_parser.py
-├── requirements.txt
-├── Dockerfile
-├── docker-compose.yml
-└── start.sh                   # Runs both processes in one container
+├── docs/                      # ACCURACY.md, DEVELOPING.md
+├── evaluation/                # model A/B script + results
+├── scripts/mutation_test.py   # lightweight mutation testing
+├── tests/                     # pytest suite (Groq/USDA mocked)
+├── Dockerfile, docker-compose.yml, render.yaml, start.sh
+└── requirements.txt, requirements-dev.txt, ruff.toml, pytest.ini
 ```
 
 ## Tests
 
 ```bash
-python -m tests.test_nutrition   # assertions, offline, no API key
-python -m tests.test_parser      # prints a sample of lookups
+pip install -r requirements-dev.txt
+pytest --cov=app                 # 184 tests, no API keys or network needed
+ruff check app/api app/core app/db app/services tests scripts evaluation
+python scripts/mutation_test.py  # mutation score for tdee + nutrition
 ```
 
-`test_nutrition` covers portion weights, IFCT matching and the USDA relevance
-guard. Uncomment `test_parser()` at the bottom of `tests/test_parser.py` to
-exercise the LLM parser once `GROQ_API_KEY` is set.
+The suite covers services, every API route, input validation (unusable stats
+return 422 instead of a 500), smoke imports, and parity between
+`/api/tdee-preview` and `calculate_goals` for every activity x goal combination.
+Coverage: **86%** of `app/` (UI excluded).
+
+**Mutation testing** (`scripts/mutation_test.py`, an AST mutator since mutmut
+does not run on Windows): `tdee.py` 44/46 killed (95.7%), `nutrition.py` 33/67 (49.3%; survivors are mostly portion-weight constants), total **77/113 (68.1%)**.
+
+**Model A/B** ([`evaluation/results.md`](evaluation/results.md)): on 10
+labelled Indian meals, `openai/gpt-oss-120b` and `openai/gpt-oss-20b` both
+parsed 100% of meals with the gold item count and 0% median calorie error
+(~0.8s each). The Llama models are no longer served by Groq.
+
+## Roadmap
+
+- Lint and test the Streamlit UI module
+- Grow the IFCT table and the A/B gold set
+- Photo-based meal logging
+- Alembic migrations for Postgres deployments
 
 ## Accuracy
 

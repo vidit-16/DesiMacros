@@ -11,6 +11,8 @@ out the portions, macros and daily totals for you.
 Built because every mainstream tracker expects you to weigh food in grams and
 has no idea what a katori is.
 
+**Live app:** https://desimacros.onrender.com/
+
 ## What it does
 
 - **Talk to log.** An LLM turns a free-text meal description into structured

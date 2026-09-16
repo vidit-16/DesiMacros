@@ -17,7 +17,7 @@ has no idea what a katori is.
   <img src="docs/screenshots/desi_log.png" alt="Logging a meal in plain English" width="49%">
   <img src="docs/screenshots/desi_summary.png" alt="Daily summary with macro split" width="49%">
 </p>
-<p align="center"><em>Describe a meal, get it parsed into items and macros (left). The day's totals and macro split (right).</em></p>
+<p align="center"><em>A meal described in plain words, broken into items with calories and macronutrients (left). The day's totals and calories by macronutrient (right).</em></p>
 
 ## What it does
 

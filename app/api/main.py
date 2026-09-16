@@ -73,7 +73,7 @@ class ProfileUpdateRequest(BaseModel):
     # Bounds reject values the formulas cannot use: a height of 0 used to raise
     # ZeroDivisionError in the BMI step (a 500), and a negative weight produced
     # negative calorie targets that were then saved to the profile.
-    name: str = Field("Vidit", max_length=100)
+    name: str = Field("", max_length=100)
     age: int = Field(20, ge=10, le=120)
     gender: Literal["male", "female"] = "male"
     height_cm: float = Field(170.0, ge=50, le=280)

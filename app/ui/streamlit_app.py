@@ -3,8 +3,10 @@ DesiMacros — Streamlit Frontend
 Run with: streamlit run app/ui/streamlit_app.py
 """
 
+import html
 import os
 import uuid
+from pathlib import Path
 
 import streamlit as st
 import httpx
@@ -37,7 +39,7 @@ HEADERS = {"X-User-Token": USER_TOKEN}
 
 st.set_page_config(
     page_title="DesiMacros",
-    page_icon="🥗",
+    page_icon=str(Path(__file__).resolve().parent / "favicon.png"),
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -49,12 +51,13 @@ st.markdown("""
     border-radius: 12px;
     padding: 16px;
     text-align: center;
-    border-left: 4px solid #ff6b35;
+    border-left: 4px solid #2f5d50;
 }
 .macro-number { font-size: 28px; font-weight: 700; color: #1a1a2e; }
 .macro-label  { font-size: 12px; color: #6c757d; text-transform: uppercase; }
-.chat-msg-user { background:#e8f4fd; border-radius:12px; padding:10px 14px; margin:6px 0; color:#1a1a1a !important; }
-.chat-msg-bot  { background:#f0f8f0; border-radius:12px; padding:10px 14px; margin:6px 0; color:#1a1a1a !important; }
+.chat-msg-user { background:#f1f3f5; border-radius:12px; padding:10px 14px; margin:6px 0; color:#1a1a1a !important; }
+.chat-msg-bot  { background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:10px 14px; margin:6px 0; color:#1a1a1a !important; }
+.chat-role { font-size:12px; font-weight:600; color:#6c757d; margin-bottom:4px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -68,7 +71,7 @@ def load_profile(token: str):
         r = httpx.get(f"{API_BASE}/api/profile", timeout=5, headers={"X-User-Token": token})
         return r.json()
     except Exception:
-        return {"calorie_goal": 2200, "protein_goal": 100, "carbs_goal": 280, "fat_goal": 70, "name": "User"}
+        return {"calorie_goal": 2200, "protein_goal": 100, "carbs_goal": 280, "fat_goal": 70, "name": ""}
 
 @st.cache_data(ttl=300)
 def load_storage():
@@ -81,26 +84,35 @@ def load_storage():
 
 profile = load_profile(USER_TOKEN)
 
+# The API stores a placeholder name until the user sets one.
+PLACEHOLDER_NAMES = {"", "you", "user"}
+
+
+def display_name(p: dict) -> str:
+    name = (p.get("name") or "").strip()
+    return "" if name.lower() in PLACEHOLDER_NAMES else name
+
+
 with st.sidebar:
-    st.title("🥗 DesiMacros")
-    st.caption("Talk to log. No forms, no fuss.")
+    st.title("DesiMacros")
+    st.caption("Calorie and macro tracking for Indian meals.")
     st.divider()
-    page = st.radio("Navigate", ["📝 Log Meal", "📊 Today's Summary", "📅 History", "📈 Weekly Insights", "⚙️ Profile & Goals"])
+    page = st.radio("Section", ["Log a meal", "Daily summary", "History", "Weekly trends", "Profile and goals"])
     st.divider()
-    st.caption(f"Goals for {profile.get('name', 'You')}")
+    st.caption(f"Daily targets for {display_name(profile)}" if display_name(profile) else "Daily targets")
     st.metric("Calories", f"{profile.get('calorie_goal', 2200):.0f} kcal")
-    st.metric("Protein", f"{profile.get('protein_goal', 100):.0f}g")
-    st.metric("Carbs", f"{profile.get('carbs_goal', 280):.0f}g")
-    st.metric("Fat", f"{profile.get('fat_goal', 70):.0f}g")
+    st.metric("Protein", f"{profile.get('protein_goal', 100):.0f} g")
+    st.metric("Carbohydrates", f"{profile.get('carbs_goal', 280):.0f} g")
+    st.metric("Fat", f"{profile.get('fat_goal', 70):.0f} g")
     st.divider()
     if DEMO_MODE and load_storage() == "sqlite":
         st.caption(
-            "This log belongs to your link alone - bookmark the URL to come back to it. "
-            "Demo data is cleared whenever the app restarts."
+            "Your log is private to this link. Bookmark the page to return to it. "
+            "This demo clears all logs when the app restarts."
         )
     else:
-        st.caption("This log belongs to your link alone - bookmark the URL to come back to it.")
-    st.caption("Figures are estimates, not medical or dietary advice.")
+        st.caption("Your log is private to this link. Bookmark the page to return to it.")
+    st.caption("All figures are estimates and are not medical or dietary advice.")
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -139,31 +151,34 @@ def delete_entry(entry_id):
     except Exception as e:
         return False, str(e)
 
-def macro_card(label, value, unit="g", color="#ff6b35"):
+def macro_card(label, value, unit="g", color="#2f5d50"):
     st.markdown(f"""
     <div class="macro-card" style="border-left-color:{color}">
-        <div class="macro-number">{value}<span style="font-size:14px">{unit}</span></div>
+        <div class="macro-number">{value}<span style="font-size:14px"> {unit}</span></div>
         <div class="macro-label">{label}</div>
     </div>""", unsafe_allow_html=True)
 
 
 # ── Pages ─────────────────────────────────────────────────────────────────────
 
-if "📝 Log Meal" in page:
-    st.title("📝 Log Your Meal")
-    st.caption("Just describe what you ate — no measurements needed if you don't have them.")
+if page == "Log a meal":
+    st.title("Log a meal")
+    st.caption(
+        "Describe what you ate in your own words. Quantities are optional, "
+        "but including them (for example, 2 rotis or 1 katori of dal) makes the estimate more accurate."
+    )
 
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
 
     log_date = st.date_input("Date", value=date.today(), max_value=date.today())
 
-    st.markdown("**Try these:**")
+    st.markdown("**Examples**")
     examples = [
         "Had poha for breakfast and chai",
         "2 rotis with dal tadka and a katori of dahi for lunch",
         "Rajma chawal for dinner with some salad",
-        "Mess food — dal, sabzi, 3 rotis",
+        "Dal, mixed vegetable sabzi and 3 rotis",
     ]
     cols = st.columns(2)
     for i, ex in enumerate(examples):
@@ -171,49 +186,53 @@ if "📝 Log Meal" in page:
             st.session_state.prefill = ex
 
     prefill = st.session_state.pop("prefill", "")
-    user_input = st.chat_input("What did you eat?") or prefill
+    user_input = st.chat_input("Describe your meal") or prefill
 
     if user_input:
         st.session_state.chat_history.append({"role": "user", "text": user_input})
-        with st.spinner("Parsing your meal..."):
+        with st.spinner("Estimating nutrition"):
             result = post_log(user_input, str(log_date))
 
         if "error" in result:
-            st.session_state.chat_history.append({"role": "bot", "text": f"❌ Error: {result['error']}"})
+            st.session_state.chat_history.append({"role": "bot", "text": f"The meal could not be logged: {result['error']}"})
         else:
             entries = result.get("entries", [])
             totals = result.get("daily_totals", {})
             confidence = result.get("parse_confidence", "")
             clarification = result.get("clarification_needed", "")
 
-            lines = [f"✅ Logged {len(entries)} item(s)!\n"]
+            lines = [f"Logged {len(entries)} item{'' if len(entries) == 1 else 's'}.\n"]
             missing = []
             for e in entries:
                 if e.get("source") == "not_found":
                     missing.append(e["food_name"])
-                    lines.append(f"• **{e['food_name']}** ({e['quantity']} {e['unit']}) — ❓ not in our database, counted as 0 kcal")
+                    lines.append(f"- **{e['food_name']}** ({e['quantity']} {e['unit']}): not found in the nutrition database, so not counted")
                     continue
-                lines.append(f"• **{e['food_name']}** ({e['quantity']} {e['unit']}) — {e['calories']} kcal | P: {e['protein']}g | C: {e['carbs']}g | F: {e['fat']}g")
-            lines.append(f"\n📊 **Today so far:** {totals.get('calories', 0)} kcal | Protein: {totals.get('protein', 0)}g ({totals.get('protein_pct', 0)}% of goal)")
+                lines.append(f"- **{e['food_name']}** ({e['quantity']} {e['unit']}): {e['calories']} kcal, protein {e['protein']} g, carbohydrates {e['carbs']} g, fat {e['fat']} g")
+            lines.append(f"\n**Total for the day:** {totals.get('calories', 0)} kcal, protein {totals.get('protein', 0)} g ({totals.get('protein_pct', 0)}% of target)")
             if clarification:
-                lines.append(f"\n⚠️ *{clarification}*")
+                lines.append(f"\nNote: {clarification}")
             if confidence == "low":
-                lines.append("\n💡 *Confidence was low — you can re-log with more detail.*")
+                lines.append("\nSome portions were unclear, so this estimate is less reliable. Logging again with quantities will improve it.")
             if missing:
-                lines.append(f"\n❓ *Couldn't find {', '.join(missing)}. Try a more common name, or log the main ingredients separately.*")
+                lines.append(f"\nNot found: {', '.join(missing)}. Try a more common name, or log the main ingredients separately.")
 
             st.session_state.chat_history.append({"role": "bot", "text": "\n".join(lines)})
             st.cache_data.clear()
 
     for msg in reversed(st.session_state.chat_history):
         if msg["role"] == "user":
-            st.markdown(f'<div class="chat-msg-user">🧑 {msg["text"]}</div>', unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="chat-msg-user"><div class="chat-role">You</div>{html.escape(msg["text"])}</div>',
+                unsafe_allow_html=True,
+            )
         else:
-            st.markdown(f'<div class="chat-msg-bot">🥗 {msg["text"]}</div>', unsafe_allow_html=True)
+            st.markdown('<div class="chat-role">DesiMacros</div>', unsafe_allow_html=True)
+            st.markdown(msg["text"])
 
 
-elif "📊 Today" in page:
-    st.title("📊 Today's Summary")
+elif page == "Daily summary":
+    st.title("Daily summary")
     selected_date = st.date_input("Date", value=date.today(), max_value=date.today())
     data = get_summary(str(selected_date))
 
@@ -224,59 +243,59 @@ elif "📊 Today" in page:
         entries = data.get("entries", [])
 
         if not entries:
-            st.info("Nothing logged yet for this day. Go log a meal! 🍽️")
+            st.info("Nothing has been logged for this day.")
         else:
             c1, c2, c3, c4 = st.columns(4)
-            with c1: macro_card("Calories", totals.get("calories", 0), "kcal", "#ff6b35")
-            with c2: macro_card("Protein", totals.get("protein", 0), "g", "#4ecdc4")
-            with c3: macro_card("Carbs", totals.get("carbs", 0), "g", "#45b7d1")
-            with c4: macro_card("Fat", totals.get("fat", 0), "g", "#f7dc6f")
+            with c1: macro_card("Calories", totals.get("calories", 0), "kcal", "#2f5d50")
+            with c2: macro_card("Protein", totals.get("protein", 0), "g", "#3b7a9e")
+            with c3: macro_card("Carbohydrates", totals.get("carbs", 0), "g", "#8a9a5b")
+            with c4: macro_card("Fat", totals.get("fat", 0), "g", "#c08a3e")
 
             st.divider()
 
             cal_pct = min(totals.get("calorie_pct", 0), 100)
-            st.subheader("Calorie Goal Progress")
-            st.progress(cal_pct / 100, text=f"{cal_pct}% of daily goal ({totals.get('calories_remaining', 0)} kcal remaining)")
+            st.subheader("Calories against target")
+            st.progress(cal_pct / 100, text=f"{cal_pct}% of daily target, {totals.get('calories_remaining', 0)} kcal remaining")
 
-            st.subheader("Macro Split")
+            st.subheader("Calories by macronutrient")
             fig = go.Figure(data=[go.Pie(
-                labels=["Protein", "Carbs", "Fat"],
+                labels=["Protein", "Carbohydrates", "Fat"],
                 values=[totals.get("protein", 0) * 4, totals.get("carbs", 0) * 4, totals.get("fat", 0) * 9],
                 hole=0.5,
-                marker_colors=["#4ecdc4", "#45b7d1", "#f7dc6f"],
+                marker_colors=["#3b7a9e", "#8a9a5b", "#c08a3e"],
             )])
             fig.update_layout(margin=dict(t=0, b=0), height=280)
             st.plotly_chart(fig, use_container_width=True)
 
-            st.subheader("What you ate")
-            st.caption("Logged something wrong? Delete the entry and log it again.")
+            st.subheader("Logged items")
+            st.caption("To correct an item, delete it and log the meal again.")
             for e in entries:
                 c1, c2, c3 = st.columns([4, 4, 1])
                 c1.markdown(f"**{e['food_name']}** — {e['quantity']} {e['unit']}")
                 c2.caption(
-                    f"{e['calories']} kcal · P {e['protein']}g · C {e['carbs']}g · F {e['fat']}g"
-                    f"  ·  _{e.get('source', 'unknown')}_"
+                    f"{e['calories']} kcal · protein {e['protein']} g · carbohydrates {e['carbs']} g · fat {e['fat']} g"
+                    f" · source: {e.get('source', 'unknown')}"
                 )
-                if c3.button("🗑️", key=f"del_{e['id']}", help="Delete this entry"):
+                if c3.button("Delete", key=f"del_{e['id']}", help="Delete this item"):
                     ok, err = delete_entry(e["id"])
                     if ok:
                         st.cache_data.clear()
                         st.rerun()
                     else:
-                        st.error(f"Could not delete: {err}")
+                        st.error(f"The item could not be deleted: {err}")
 
             st.divider()
-            st.subheader("💡 Today's Alerts")
+            st.subheader("Observations")
             try:
                 alerts_data = httpx.get(f"{API_BASE}/api/alerts", params={"log_date": str(selected_date)}, timeout=10, headers=HEADERS).json()
                 for alert in alerts_data.get("alerts", []):
                     st.markdown(alert)
             except Exception as e:
-                st.warning(f"Could not load alerts: {e}")
+                st.warning(f"Observations could not be loaded: {e}")
 
 
-elif "📅 History" in page:
-    st.title("📅 Meal History")
+elif page == "History":
+    st.title("History")
     data = get_history()
 
     if "error" in data:
@@ -284,21 +303,27 @@ elif "📅 History" in page:
     else:
         history = data.get("history", [])
         if not history:
-            st.info("No history yet. Start logging meals!")
+            st.info("No meals have been logged yet.")
         else:
             for day in history:
-                with st.expander(f"📅 {day['date']} — {day['totals'].get('calories', 0)} kcal"):
+                with st.expander(f"{day['date']}: {day['totals'].get('calories', 0)} kcal"):
                     c1, c2, c3 = st.columns(3)
-                    c1.metric("Protein", f"{day['totals'].get('protein', 0)}g")
-                    c2.metric("Carbs", f"{day['totals'].get('carbs', 0)}g")
-                    c3.metric("Fat", f"{day['totals'].get('fat', 0)}g")
+                    c1.metric("Protein", f"{day['totals'].get('protein', 0)} g")
+                    c2.metric("Carbohydrates", f"{day['totals'].get('carbs', 0)} g")
+                    c3.metric("Fat", f"{day['totals'].get('fat', 0)} g")
                     if day["entries"]:
                         df = pd.DataFrame(day["entries"])
-                        st.dataframe(df[["food_name", "quantity", "unit", "calories"]], use_container_width=True, hide_index=True)
+                        st.dataframe(
+                            df[["food_name", "quantity", "unit", "calories"]].rename(
+                                columns={"food_name": "Food", "quantity": "Quantity", "unit": "Unit", "calories": "Calories (kcal)"}
+                            ),
+                            use_container_width=True,
+                            hide_index=True,
+                        )
 
 
-elif "📈 Weekly" in page:
-    st.title("📈 Weekly Insights")
+elif page == "Weekly trends":
+    st.title("Weekly trends")
     data = get_weekly()
 
     if "error" in data:
@@ -308,7 +333,7 @@ elif "📈 Weekly" in page:
         goals = data.get("goals", {})
 
         if not any(d["logged"] for d in weekly):
-            st.info("Log meals for a few days and your weekly trends will appear here!")
+            st.info("Weekly trends appear once meals have been logged on at least one day this week.")
         else:
             df = pd.DataFrame([{
                 "Date": d["date"],
@@ -320,60 +345,61 @@ elif "📈 Weekly" in page:
             } for d in weekly])
 
             fig = px.bar(df, x="Date", y="Calories", color="Logged",
-                         color_discrete_map={True: "#ff6b35", False: "#dee2e6"},
-                         title="Daily Calories vs Goal")
+                         color_discrete_map={True: "#2f5d50", False: "#dee2e6"},
+                         title="Daily calories against target")
             fig.add_hline(y=goals.get("calories", 2000), line_dash="dash",
-                          annotation_text="Calorie Goal", line_color="red")
+                          annotation_text="Calorie target", line_color="#6c757d")
             fig.update_layout(showlegend=False)
             st.plotly_chart(fig, use_container_width=True)
 
             fig2 = px.line(df, x="Date", y="Protein", markers=True,
-                           title="Daily Protein (g)", color_discrete_sequence=["#4ecdc4"])
+                           title="Daily protein (g)", color_discrete_sequence=["#3b7a9e"])
             fig2.add_hline(y=goals.get("protein", 80), line_dash="dash",
-                           annotation_text="Protein Goal", line_color="#4ecdc4")
+                           annotation_text="Protein target", line_color="#6c757d")
             st.plotly_chart(fig2, use_container_width=True)
 
             logged_days = df[df["Logged"]]
             if not logged_days.empty:
-                st.subheader("Week at a Glance")
+                st.subheader("This week")
                 c1, c2, c3 = st.columns(3)
-                c1.metric("Avg Daily Calories", f"{logged_days['Calories'].mean():.0f} kcal")
-                c2.metric("Avg Protein", f"{logged_days['Protein'].mean():.0f}g")
-                c3.metric("Days Logged", f"{len(logged_days)}/7")
+                c1.metric("Average daily calories", f"{logged_days['Calories'].mean():.0f} kcal")
+                c2.metric("Average daily protein", f"{logged_days['Protein'].mean():.0f} g")
+                c3.metric("Days logged", f"{len(logged_days)} of 7")
 
             st.divider()
-            st.subheader("🔍 Patterns")
+            st.subheader("Patterns")
             try:
                 patterns_data = httpx.get(f"{API_BASE}/api/patterns", timeout=10, headers=HEADERS).json()
                 for p in patterns_data.get("patterns", []):
                     st.markdown(p)
             except Exception as e:
-                st.warning(f"Could not load patterns: {e}")
+                st.warning(f"Patterns could not be loaded: {e}")
 
             st.divider()
-            st.subheader("🤖 Coach Summary")
-            st.caption("AI-generated weekly feedback based on your logs")
-            if st.button("Generate Weekly Summary", type="primary"):
-                with st.spinner("Analysing your week..."):
+            st.subheader("Weekly summary")
+            st.caption("Written by a language model from this week's logs. Treat it as general guidance.")
+            if st.button("Write weekly summary", type="primary"):
+                with st.spinner("Summarising the week"):
                     try:
                         summary_data = httpx.get(f"{API_BASE}/api/weekly-summary", timeout=30, headers=HEADERS).json()
                         st.info(summary_data.get("summary", "No summary available."))
                         st.caption(f"Based on {summary_data.get('days_logged', 0)} logged days this week.")
                     except Exception as e:
-                        st.error(f"Could not generate summary: {e}")
+                        st.error(f"The summary could not be generated: {e}")
 
 
-elif "⚙️ Profile" in page:
-    st.title("⚙️ Profile & Goals")
-    st.caption("Enter your stats and we'll calculate your exact calorie and macro targets.")
+elif page == "Profile and goals":
+    st.title("Profile and goals")
+    st.caption("Enter your details to calculate daily calorie and macronutrient targets.")
 
     profile = load_profile(USER_TOKEN)
 
     with st.form("profile_form"):
-        st.subheader("Personal Info")
+        st.subheader("Personal details")
         c1, c2 = st.columns(2)
-        name      = c1.text_input("Name", value=profile.get("name", "Vidit"))
-        gender    = c2.selectbox("Gender", ["male", "female"],
+        name      = c1.text_input("Name (optional)", value=display_name(profile))
+        gender    = c2.selectbox("Sex (used in the energy equation)", ["male", "female"],
+                                  format_func=str.capitalize,
                                   index=0 if profile.get("gender", "male") == "male" else 1)
 
         c1, c2, c3 = st.columns(3)
@@ -383,29 +409,29 @@ elif "⚙️ Profile" in page:
         weight_kg = c3.number_input("Weight (kg)", min_value=30.0, max_value=200.0,
                                      value=float(profile.get("weight_kg", 65.0)), step=0.5)
 
-        st.subheader("Activity & Goal")
+        st.subheader("Activity and goal")
         activity_options = {
-            "sedentary":   "🪑 Sedentary (no exercise, desk job)",
-            "light":       "🚶 Light (1-3 days/week)",
-            "moderate":    "🏃 Moderate (3-5 days/week) — typical college student",
-            "active":      "💪 Active (6-7 days/week)",
-            "very_active": "🏋️ Very active (athlete / physical job)",
+            "sedentary":   "Sedentary: little or no exercise",
+            "light":       "Lightly active: exercise 1 to 3 days a week",
+            "moderate":    "Moderately active: exercise 3 to 5 days a week",
+            "active":      "Active: exercise 6 to 7 days a week",
+            "very_active": "Very active: athletic training or a physical job",
         }
         activity_keys = list(activity_options.keys())
         current_activity = profile.get("activity_level", "moderate")
         activity_level = st.selectbox(
-            "Activity Level",
+            "Activity level",
             options=activity_keys,
             format_func=lambda x: activity_options[x],
             index=activity_keys.index(current_activity) if current_activity in activity_keys else 2,
         )
 
         goal_options = {
-            "cut":       "📉 Cut — lose ~0.5kg/week",
-            "mild_cut":  "📉 Mild cut — lose ~0.25kg/week",
-            "maintain":  "⚖️ Maintain weight",
-            "mild_bulk": "📈 Mild bulk — gain ~0.25kg/week",
-            "bulk":      "📈 Bulk — gain ~0.5kg/week",
+            "cut":       "Lose about 0.5 kg per week",
+            "mild_cut":  "Lose about 0.25 kg per week",
+            "maintain":  "Maintain current weight",
+            "mild_bulk": "Gain about 0.25 kg per week",
+            "bulk":      "Gain about 0.5 kg per week",
         }
         goal_keys = list(goal_options.keys())
         current_goal = profile.get("goal_type", "maintain")
@@ -416,10 +442,10 @@ elif "⚙️ Profile" in page:
             index=goal_keys.index(current_goal) if current_goal in goal_keys else 2,
         )
 
-        submitted = st.form_submit_button("Calculate & Save Goals", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("Calculate and save targets", type="primary", use_container_width=True)
 
     if submitted:
-        with st.spinner("Calculating your targets..."):
+        with st.spinner("Calculating targets"):
             try:
                 r = httpx.post(f"{API_BASE}/api/profile", json={
                     "name": name, "age": age, "gender": gender,
@@ -429,21 +455,21 @@ elif "⚙️ Profile" in page:
                 result = r.json()
                 goals = result.get("goals", {})
 
-                st.success("✅ Goals updated!")
+                st.success("Targets saved.")
                 st.divider()
-                st.subheader("Your New Targets")
+                st.subheader("Daily targets")
 
                 c1, c2, c3, c4 = st.columns(4)
-                c1.metric("Daily Calories", f"{goals.get('target_calories', 0):.0f} kcal")
-                c2.metric("Protein", f"{goals.get('protein_g', 0):.0f}g")
-                c3.metric("Carbs", f"{goals.get('carbs_g', 0):.0f}g")
-                c4.metric("Fat", f"{goals.get('fat_g', 0):.0f}g")
+                c1.metric("Calories", f"{goals.get('target_calories', 0):.0f} kcal")
+                c2.metric("Protein", f"{goals.get('protein_g', 0):.0f} g")
+                c3.metric("Carbohydrates", f"{goals.get('carbs_g', 0):.0f} g")
+                c4.metric("Fat", f"{goals.get('fat_g', 0):.0f} g")
 
                 st.divider()
-                st.subheader("How we got there")
+                st.subheader("How the targets are calculated")
                 c1, c2, c3 = st.columns(3)
-                c1.metric("BMR", f"{goals.get('bmr', 0):.0f} kcal", help="Calories your body needs at complete rest")
-                c2.metric("TDEE", f"{goals.get('tdee', 0):.0f} kcal", help="Maintenance calories with your activity level")
+                c1.metric("BMR", f"{goals.get('bmr', 0):.0f} kcal", help="Basal metabolic rate: energy used at complete rest")
+                c2.metric("TDEE", f"{goals.get('tdee', 0):.0f} kcal", help="Total daily energy expenditure: maintenance calories at your activity level")
                 adj = goals.get('adjustment', 0)
                 c3.metric("Goal adjustment", f"{'+' if adj >= 0 else ''}{adj} kcal")
 
@@ -462,14 +488,14 @@ elif "⚙️ Profile" in page:
                 st.session_state["profile_saved"] = True
 
             except Exception as e:
-                st.error(f"Could not update profile: {e}")
+                st.error(f"The profile could not be saved: {e}")
 
     else:
         # Show current calculated values without saving
         st.divider()
-        st.subheader("Current Goals")
+        st.subheader("Current targets")
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Daily Calories", f"{profile.get('calorie_goal', 0):.0f} kcal")
-        c2.metric("Protein", f"{profile.get('protein_goal', 0):.0f}g")
-        c3.metric("Carbs", f"{profile.get('carbs_goal', 0):.0f}g")
-        c4.metric("Fat", f"{profile.get('fat_goal', 0):.0f}g")
+        c1.metric("Calories", f"{profile.get('calorie_goal', 0):.0f} kcal")
+        c2.metric("Protein", f"{profile.get('protein_goal', 0):.0f} g")
+        c3.metric("Carbohydrates", f"{profile.get('carbs_goal', 0):.0f} g")
+        c4.metric("Fat", f"{profile.get('fat_goal', 0):.0f} g")

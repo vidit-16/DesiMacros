@@ -137,7 +137,7 @@ def _seed_local_user():
     db = SessionLocal()
     if not db.query(User).filter(User.token.is_(None)).first():
         default_user = User(
-            name="Vidit",
+            name="",
             age=20, gender="male",
             height_cm=170.0, weight_kg=65.0,
             activity_level="moderate", goal_type="maintain",

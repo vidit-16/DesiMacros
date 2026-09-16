@@ -13,6 +13,12 @@ has no idea what a katori is.
 
 **Live app:** https://desimacros.onrender.com/
 
+<p align="center">
+  <img src="docs/screenshots/desi_log.png" alt="Logging a meal in plain English" width="49%">
+  <img src="docs/screenshots/desi_summary.png" alt="Daily summary with macro split" width="49%">
+</p>
+<p align="center"><em>Describe a meal, get it parsed into items and macros (left). The day's totals and macro split (right).</em></p>
+
 ## What it does
 
 - **Talk to log.** An LLM turns a free-text meal description into structured

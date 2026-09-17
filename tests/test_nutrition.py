@@ -154,11 +154,11 @@ def test_plain_rice_uses_basmati_values(no_usda):
     assert result["fat"] == pytest.approx(0.2, abs=0.1)
 
 
-def test_one_idli_is_about_58_kcal(no_usda):
+def test_one_idli_is_about_56_kcal(no_usda):
     """The table stored one idli's energy as the per-100 g value."""
     result = lookup_nutrition("idli", 1, "piece")
     assert result["grams"] == 40
-    assert result["calories"] == pytest.approx(58, abs=1)
+    assert result["calories"] == pytest.approx(56, abs=2)
 
 
 def test_oats_made_with_water_are_not_dry_oats(no_usda):

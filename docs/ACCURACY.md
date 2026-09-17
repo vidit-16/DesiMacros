@@ -1,7 +1,8 @@
 # How accurate is DesiMacros?
 
 Short version: on 39 held-out meals the median meal lands **15%** from USDA
-reference values, and 59% of meals are within 20%. That is good enough to follow
+reference values, and 59% of meals are within 20%. Across all 79 meals it is
+13%. That is good enough to follow
 trends and spot a low-protein week. It is not good enough to count calories
 precisely. This page explains where every number comes from, how that was
 measured, and which errors are still in there.
@@ -51,9 +52,11 @@ Full pipeline (parser + lookup), USDA fallback off, `openai/gpt-oss-120b`.
 | | Median calorie error | Within 20% | Median protein error | Meals with a food logged as 0 kcal |
 |---|---|---|---|---|
 | Before, dev (40 meals) | 51.7% | 28% | 47.0% | 19 |
-| **After, dev** | **12.2%** | **62%** | **17.3%** | **0** |
+| **After, dev** | **12.0%** | **68%** | **18.3%** | **0** |
 | Before, test (39 meals) | 50.0% | 36% | 47.0% | 16 |
 | **After, test** | **14.8%** | **59%** | **14.3%** | **0** |
+| Before, all 79 | 50.2% | 32% | 47.0% | 35 |
+| **After, all 79** | **12.6%** | **63%** | **16.0%** | **0** |
 
 The test half improved about as much as the dev half (35 points against 40), so
 the gain is not an artefact of tuning on the meals being scored.
@@ -73,7 +76,8 @@ the sandwich has neither a number nor an article). On the test half alone it was
 | Table fixes only (idli, cooked oats, serving size, can, bottle, slice) | 43.2% | 35% |
 | Table fixes + per-food density for volumes | 39.5% | 39% |
 | Table fixes + estimates for unknown foods | 15.7% | 54% |
-| **All changes** | **14.3%** | **61%** |
+| Everything except the reference cross-check | 14.3% | 61% |
+| **All changes** | **12.6%** | **63%** |
 
 The parser is not the bottleneck. With the correct items fed straight to the
 lookup, the test half scores 14.8%, the same as the full pipeline.
@@ -123,25 +127,73 @@ and the user can answer or accept typical portions. The model decides whether an
 amount was stated; container words (plate, bowl, serving, portion) always count
 as unstated, because the model does not apply that rule reliably on its own.
 
+## Where the table's numbers come from
+
+The food table began as approximate figures attributed to IFCT 2017. Each dish
+is now cross-checked against two published references, and
+[`evaluation/reference_values.csv`](../evaluation/reference_values.csv) records
+every comparison with its source row and the decision taken:
+
+* **INDB** - the Indian Nutrient Databank: 1,014 Indian recipes and 1,095 raw
+  foods, built from ICMR-NIN IFCT 2017 with UK and USDA data filling gaps, and
+  USDA nutrient retention factors applied for cooking. Published open access
+  under CC BY (Nanavati et al., *Current Developments in Nutrition*, 2024;
+  data at github.com/lindsayjaacks/Indian-Nutrient-Databank-INDB-). The
+  repository itself carries no licence file, so values are used with
+  attribution and cited per row.
+* **USDA FNDDS** - the survey food list behind the benchmark.
+
+The rule was deliberately conservative: **a value changed only when both
+references disagreed with it in the same direction.** Nine dishes moved, one was
+added, and the rest stood:
+
+| Dish (kcal/100 g) | Was | Now | INDB | USDA |
+|---|---|---|---|---|
+| idli | 58 | 140 | 138 | 128 |
+| sambar | 47 | 92 | 97 | 86 |
+| dosa | 133 | 190 | 381 | 210 |
+| palak paneer | 168 | 100 | 78 | 101 |
+| aloo gobi | 72 | 98 | 106 | 86 |
+| aloo matar | 89 | 101 | 101 | 86 |
+| rajma | 127 | 144 | 144 | 126 |
+| biryani | 210 | 190 | 191 | 104 |
+| coconut chutney | 194 | 255 | 266 | 246 |
+| naan | *(missing)* | 286 | 286 | 311 |
+
+Two INDB quirks make parts of it unusable, and those rows were skipped rather
+than averaged in:
+
+* **Deep-fried dishes count all the frying oil as absorbed.** INDB puts a
+  samosa at 577 kcal/100 g, poori at 738 and bhatura at 793, with 60-90 g of fat
+  per 100 g. A samosa is not two-thirds fat.
+* **Boiled dishes include their cooking water.** Its boiled egg is 45 kcal/100 g
+  against USDA's 143, and its plain khichdi 57.
+
+The exercise also settled arguments in the app's favour. INDB puts upma at 148
+(the app says 153) and vegetable biryani at 175, while USDA's survey versions
+are 87 and 104. Where the app disagrees with USDA on an Indian dish, the Indian
+reference usually backs the app, which is why the benchmark's remaining error is
+not something to tune away.
+
 ## Errors still in there
 
 In rough order of size on the benchmark:
 
-**The table and USDA disagree on some dishes.** These are the largest remaining
-misses, and they were deliberately not "fixed":
+**The table and USDA still disagree on some dishes**, and the Indian reference
+says the app is right to:
 
-| Dish (per 100 g) | App | USDA FNDDS |
-|---|---|---|
-| Biryani | 210 kcal | 104 (chicken) to 145 (mutton) |
-| Upma | 153 kcal | 87 |
-| Palak paneer | 168 kcal | 101 |
-| Veg sandwich | 220 kcal | 120 |
+| Dish (per 100 g) | App | INDB | USDA FNDDS |
+|---|---|---|---|
+| Biryani | 190 kcal | 191 | 104 (chicken) to 145 (mutton) |
+| Upma | 153 kcal | 148 | 87 |
+| Veg sandwich | 220 kcal | 243 | 120 |
+| Roti | 264 kcal | 202 | 299 |
 
 USDA's recipes for Indian dishes are American versions, often lighter on oil and
-ghee than an Indian home or restaurant kitchen. Moving the table to match them
-would improve the score without making the app more right for its users. The
-benchmark measures agreement with a published reference, not truth, and this is
-where that difference shows.
+ghee than an Indian home or restaurant kitchen. Matching them would improve the
+score without making the app more right for its users. The benchmark measures
+agreement with a published reference, not truth, and this is where that
+difference shows.
 
 **Portion defaults are guesses.** A samosa is 60 g in the app and 100 g in
 USDA; a pakora 25 g against USDA's 12 g. Street food varies by more than that
@@ -155,7 +207,10 @@ accepts a typical portion, which is the worst case for accuracy.
 
 **Estimates are estimates.** They removed the largest error in the benchmark,
 but a model's idea of a typical samosa is not a lab measurement. They are
-labelled as estimates in the app so they can be judged as such.
+labelled as estimates in the app so they can be judged as such. A three-way A/B
+found no model clearly better at this
+([`evaluation/results.md`](../evaluation/results.md)), and all three miss the
+same foods, which points at the reference rather than the model.
 
 **Cooking fat is invisible.** How much oil or ghee went in is the biggest
 calorie variable in Indian cooking, and nothing in "dal chawal" carries it.

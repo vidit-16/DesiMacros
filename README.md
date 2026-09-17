@@ -24,9 +24,11 @@ has no idea what a katori is.
 - **Talk to log.** An LLM turns a free-text meal description into structured
   items, splitting combined dishes ("rajma chawal" → rajma + rice) and handling
   desi units (katori, chapati, glass, handful).
-- **Indian food first.** Nutrition comes from a curated IFCT table of common
-  Indian dishes, then the USDA database. A food neither has gets a model
-  estimate, labelled as an estimate, instead of being counted as 0 kcal.
+- **Indian food first.** Nutrition comes from a curated table of common Indian
+  dishes, cross-checked against the Indian Nutrient Databank and USDA
+  ([`evaluation/reference_values.csv`](evaluation/reference_values.csv)), then
+  the USDA API. A food none of them has gets a model estimate, labelled as an
+  estimate, instead of being counted as 0 kcal.
 - **Portion-aware.** "2 pieces" means something different for a roti (40g) than
   for a dosa (100g), and a katori of rice weighs less than a katori of dal. The
   lookup knows both.
@@ -62,7 +64,8 @@ flowchart LR
 - **Backend**: FastAPI + SQLAlchemy (SQLite locally, Postgres when deployed)
 - **Frontend**: Streamlit
 - **LLM**: Groq (`openai/gpt-oss-120b` by default, set `GROQ_MODEL` to change)
-- **Nutrition**: curated IFCT subset in SQLite + USDA FoodData Central API
+- **Nutrition**: curated Indian food table in SQLite (values cross-checked
+  against INDB and USDA) + USDA FoodData Central API + model estimates
 - **Container**: Docker
 
 ## Getting started
@@ -203,8 +206,8 @@ survivors change a model request parameter or are equivalent to the original.
 **Accuracy benchmark** ([`docs/ACCURACY.md`](docs/ACCURACY.md)): 79 meal
 descriptions labelled from USDA FNDDS, split into dev and held-out test halves.
 On the test half, median calorie error fell from 50.0% to 14.8% and meals within
-20% rose from 36% to 59%. No meal now contains a food counted as 0 kcal (before:
-16 of 39).
+20% rose from 36% to 59%; across all 79 meals, from 50.2% to 12.6%. No meal now
+contains a food counted as 0 kcal (before: 35 of 79).
 
 **Model A/B** ([`evaluation/results.md`](evaluation/results.md)): on 10
 labelled Indian meals, `openai/gpt-oss-120b` and `openai/gpt-oss-20b` both

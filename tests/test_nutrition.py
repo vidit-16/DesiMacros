@@ -51,7 +51,14 @@ def test_piece_weight_of_empty_name_is_unknown():
     "unit,quantity,food,grams",
     [
         ("piece", 2, "roti", 80),
-        ("katori", 1, "dal tadka", 150),
+        ("katori", 1, "dal tadka", 150),   # dal weighs about what water does
+        ("katori", 1, "rice", 98.75),      # cooked rice does not: 158 g per cup
+        ("cup", 1, "cornflakes", 28),
+        ("tbsp", 1, "ghee", 12.8125),
+        ("glass", 1, "milk", 250),
+        ("can", 1, "coke", 330),
+        ("serving", 1, "curd", 150),       # a serving is a katori, not 100 g
+        ("serving", 1, "roti", 40),        # unless the food has a piece weight
         ("plate", 1, "biryani", 300),      # a plate is a plate, not 100g
         ("g", 150, "chicken", 150),
         ("blorp", 1, "mystery", 100),      # unknown unit falls back to 100g
@@ -108,7 +115,8 @@ def test_blank_query_is_not_found():
         ("egg", "boiled egg"),
         ("chai", "tea with milk"),
         ("yogurt", "curd"),
-        ("oatmeal", "oats"),
+        ("oatmeal", "cooked oats"),    # oatmeal is eaten cooked, not as dry oats
+        ("oats", "oats"),
         ("bread slice", "white bread"),
     ],
 )
@@ -140,9 +148,23 @@ def test_plain_rice_uses_basmati_values(no_usda):
     """The bug in user-visible terms: a katori of rice, not of jeera rice."""
     result = lookup_nutrition("rice", 1, "katori")
     assert result["food_name"] == "basmati rice"
-    assert result["grams"] == 150
-    assert result["calories"] == pytest.approx(195.0, abs=0.5)
-    assert result["fat"] == pytest.approx(0.3, abs=0.1)
+    assert result["grams"] == pytest.approx(98.75)
+    assert result["calories"] == pytest.approx(128.4, abs=0.5)
+    assert result["fat"] == pytest.approx(0.2, abs=0.1)
+
+
+def test_one_idli_is_about_58_kcal(no_usda):
+    """The table stored one idli's energy as the per-100 g value."""
+    result = lookup_nutrition("idli", 1, "piece")
+    assert result["grams"] == 40
+    assert result["calories"] == pytest.approx(58, abs=1)
+
+
+def test_oats_made_with_water_are_not_dry_oats(no_usda):
+    cooked = lookup_nutrition("cooked oats", 1, "cup")
+    dry = lookup_nutrition("oats", 1, "cup")
+    assert cooked["calories"] == pytest.approx(166, abs=2)    # 234 g at 71 kcal/100 g
+    assert dry["calories"] == pytest.approx(315, abs=2)       # 81 g of dry oats
 
 
 def test_unknown_food_returns_zeros_and_a_flag(no_usda):

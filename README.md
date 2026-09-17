@@ -25,10 +25,14 @@ has no idea what a katori is.
   items, splitting combined dishes ("rajma chawal" → rajma + rice) and handling
   desi units (katori, chapati, glass, handful).
 - **Indian food first.** Nutrition comes from a curated IFCT table of common
-  Indian dishes, falling back to the USDA database for everything else. Foods it
-  genuinely can't find are flagged instead of quietly guessed.
+  Indian dishes, then the USDA database. A food neither has gets a model
+  estimate, labelled as an estimate, instead of being counted as 0 kcal.
 - **Portion-aware.** "2 pieces" means something different for a roti (40g) than
-  for a dosa (100g), and the lookup knows the difference.
+  for a dosa (100g), and a katori of rice weighs less than a katori of dal. The
+  lookup knows both.
+- **Measured.** On 39 held-out meals scored against USDA reference values, the
+  median meal is 15% off and 62% are within 20%
+  ([how that was measured](docs/ACCURACY.md)).
 - **Goals from your stats.** Mifflin-St Jeor BMR → TDEE → calorie and macro
   targets based on your activity level and whether you're cutting or bulking.
 - **Insights.** Instant rule-based alerts on the day's macros, multi-day pattern
@@ -135,6 +139,7 @@ development needs no database server.
 | `GROQ_API_KEY` | Meal parsing + weekly summary | *required* |
 | `GROQ_MODEL` | Groq model ID (they get retired periodically) | `openai/gpt-oss-120b` |
 | `USDA_API_KEY` | Fallback nutrition lookup | optional |
+| `FOOD_ESTIMATES` | Model estimates for foods no database has; `off` logs them as 0 kcal | `on` |
 | `DATABASE_URL` | Where meal logs live; SQLite or Postgres | `sqlite:///./data/desimacros.db` |
 | `API_BASE_URL` | Where the UI finds the API | `http://localhost:8000` |
 | `DEMO_MODE` | Warn visitors that data resets on restart | off |
@@ -163,10 +168,10 @@ DesiMacros/
 │   ├── api/main.py            # FastAPI routes + request validation
 │   ├── core/config.py         # Settings from .env
 │   ├── db/models.py           # SQLAlchemy models + migrations
-│   ├── services/              # meal_parser, nutrition, tdee, insights
+│   ├── services/              # meal_parser, nutrition, food_estimator, tdee, insights
 │   └── ui/streamlit_app.py    # Streamlit frontend
 ├── docs/                      # ACCURACY.md, DEVELOPING.md
-├── evaluation/                # model A/B script + results
+├── evaluation/                # accuracy benchmark, USDA-labelled meals, model A/B
 ├── scripts/mutation_test.py   # lightweight mutation testing
 ├── tests/                     # pytest suite (Groq/USDA mocked)
 ├── Dockerfile, docker-compose.yml, render.yaml, start.sh
@@ -177,18 +182,27 @@ DesiMacros/
 
 ```bash
 pip install -r requirements-dev.txt
-pytest --cov=app                 # 184 tests, no API keys or network needed
+pytest --cov=app                 # 216 tests, no API keys or network needed
 ruff check app/api app/core app/db app/services tests scripts evaluation
-python scripts/mutation_test.py  # mutation score for tdee + nutrition
+python scripts/mutation_test.py  # mutation score for tdee, nutrition, food_estimator
+python evaluation/benchmark.py --split test   # accuracy against USDA reference meals
 ```
 
 The suite covers services, every API route, input validation (unusable stats
 return 422 instead of a 500), smoke imports, and parity between
 `/api/tdee-preview` and `calculate_goals` for every activity x goal combination.
-Coverage: **86%** of `app/` (UI excluded).
+Coverage: **87%** of `app/` (UI excluded).
 
 **Mutation testing** (`scripts/mutation_test.py`, an AST mutator since mutmut
-does not run on Windows): `tdee.py` 44/46 killed (95.7%), `nutrition.py` 33/67 (49.3%; survivors are mostly portion-weight constants), total **77/113 (68.1%)**.
+does not run on Windows): `tdee.py` 44/46 killed (95.7%), `nutrition.py` 42/81
+(51.9%; survivors are mostly portion-weight constants), `food_estimator.py` 25/35
+(71.4%), total **111/162 (68.5%)**.
+
+**Accuracy benchmark** ([`docs/ACCURACY.md`](docs/ACCURACY.md)): 79 meal
+descriptions labelled from USDA FNDDS, split into dev and held-out test halves.
+On the test half, median calorie error fell from 50.0% to 14.6% and meals within
+20% rose from 36% to 62%. No meal now contains a food counted as 0 kcal (before:
+16 of 39).
 
 **Model A/B** ([`evaluation/results.md`](evaluation/results.md)): on 10
 labelled Indian meals, `openai/gpt-oss-120b` and `openai/gpt-oss-20b` both

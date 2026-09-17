@@ -57,7 +57,10 @@ RULES:
    - If quantity is vague ("some", "a bit"), estimate conservatively
 4. Identify meal time from context if mentioned (breakfast, lunch, dinner, snack)
 5. If something is truly ambiguous, note it in clarification_needed
-6. parse_confidence: "high" if quantities are clear, "medium" if estimated, "low" if very vague
+6. Name foods as they were eaten. Cereals cooked in water or milk are "cooked oats",
+   not "oats"; "oats" alone means dry oats, which are five times as calorie-dense.
+   Keep the unit the user gave ("can", "bottle", "cup", "glass", "tbsp", "g").
+7. parse_confidence: "high" if quantities are clear, "medium" if estimated, "low" if very vague
 
 OUTPUT FORMAT (strict JSON):
 {

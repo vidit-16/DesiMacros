@@ -33,3 +33,6 @@ desktop.ini
 coverage.xml
 htmlcov/
 evaluation/ab.err
+
+# Benchmark parser cache
+evaluation/.cache/

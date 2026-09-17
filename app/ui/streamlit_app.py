@@ -15,6 +15,14 @@ import plotly.graph_objects as go
 import plotly.express as px
 from datetime import date
 
+# How each nutrition source is shown to the user.
+SOURCE_LABELS = {
+    "ifct": "Indian food table",
+    "usda": "USDA database",
+    "estimate": "estimate (not in either database)",
+    "not_found": "not found",
+}
+
 # Same container or bare metal -> localhost:8000; docker-compose -> http://api:8000
 API_BASE = (os.getenv("API_BASE_URL") or "http://localhost:8000").rstrip("/")
 
@@ -208,7 +216,8 @@ if page == "Log a meal":
                     missing.append(e["food_name"])
                     lines.append(f"- **{e['food_name']}** ({e['quantity']} {e['unit']}): not found in the nutrition database, so not counted")
                     continue
-                lines.append(f"- **{e['food_name']}** ({e['quantity']} {e['unit']}): {e['calories']} kcal, protein {e['protein']} g, carbohydrates {e['carbs']} g, fat {e['fat']} g")
+                lines.append(f"- **{e['food_name']}** ({e['quantity']} {e['unit']}): {e['calories']} kcal, protein {e['protein']} g, carbohydrates {e['carbs']} g, fat {e['fat']} g"
+                             + (" (estimated: this food is not in the nutrition database)" if e.get("source") == "estimate" else ""))
             lines.append(f"\n**Total for the day:** {totals.get('calories', 0)} kcal, protein {totals.get('protein', 0)} g ({totals.get('protein_pct', 0)}% of target)")
             if clarification:
                 lines.append(f"\nNote: {clarification}")
@@ -274,7 +283,7 @@ elif page == "Daily summary":
                 c1.markdown(f"**{e['food_name']}** — {e['quantity']} {e['unit']}")
                 c2.caption(
                     f"{e['calories']} kcal · protein {e['protein']} g · carbohydrates {e['carbs']} g · fat {e['fat']} g"
-                    f" · source: {e.get('source', 'unknown')}"
+                    f" · source: {SOURCE_LABELS.get(e.get('source'), e.get('source', 'unknown'))}"
                 )
                 if c3.button("Delete", key=f"del_{e['id']}", help="Delete this item"):
                     ok, err = delete_entry(e["id"])

@@ -394,3 +394,43 @@ def test_alerts_report_against_the_day_requested(logged_meal, client):
     assert body["date"] == str(date.today())
     assert isinstance(body["alerts"], list)
     assert body["totals"]["calories"] == 300.0
+
+
+# ── asking for amounts ───────────────────────────────────────────────────────
+
+
+def test_a_meal_without_amounts_is_not_logged_until_asked(
+    client, local_user, stub_parser, stub_nutrition, db_session
+):
+    stub_parser(items=[
+        {"food_name": "roti", "quantity": 2, "unit": "piece"},
+        {"food_name": "rice", "quantity": 1, "unit": "plate", "quantity_given": False},
+    ])
+    body = client.post("/api/log", json={"text": "2 rotis and rice"}).json()
+
+    assert body["logged"] is False
+    assert body["needs_quantities"] == ["rice"]
+    assert body["entries"] == []
+    assert body["daily_totals"]["calories"] == 0
+    assert db_session.query(MealEntry).count() == 0
+
+
+def test_typical_portions_log_the_meal_anyway(client, local_user, stub_parser, stub_nutrition):
+    stub_parser(items=[{"food_name": "rice", "quantity": 1, "unit": "plate", "quantity_given": False}])
+    body = client.post("/api/log", json={"text": "rice", "use_typical_portions": True}).json()
+
+    assert body["logged"] is True
+    assert body["needs_quantities"] == []
+    assert [e["food_name"] for e in body["entries"]] == ["rice"]
+
+
+def test_asking_reports_the_days_existing_totals(logged_meal, client, stub_parser):
+    stub_parser(items=[{"food_name": "rice", "quantity": 1, "unit": "plate", "quantity_given": False}])
+    body = client.post("/api/log", json={"text": "some rice"}).json()
+    assert body["logged"] is False
+    assert body["daily_totals"]["calories"] == 300.0
+
+
+def test_meals_with_amounts_log_straight_away(logged_meal):
+    assert logged_meal["logged"] is True
+    assert logged_meal["needs_quantities"] == []

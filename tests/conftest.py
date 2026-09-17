@@ -33,14 +33,16 @@ def ifct_db(tmp_path_factory):
 
 @pytest.fixture
 def no_usda(monkeypatch):
-    """Force the USDA fallback to return nothing.
+    """Force the USDA fallback and model estimates to return nothing.
 
     Most lookup tests care about IFCT resolution. Without this, a missing food
-    would depend on whether a USDA key happens to be set in the environment.
+    would depend on whether a USDA or Groq key happens to be set in the
+    environment, and tests would make network calls.
     """
     from app.services import nutrition
 
     monkeypatch.setattr(nutrition, "search_usda", lambda name: None)
+    monkeypatch.setattr(nutrition, "ESTIMATES_ENABLED", False)
 
 
 # ── API fixtures ─────────────────────────────────────────────────────────────

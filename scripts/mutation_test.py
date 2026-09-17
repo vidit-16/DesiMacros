@@ -22,6 +22,7 @@ ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_TARGETS = [
     ("app/services/tdee.py", ["tests/test_tdee.py"]),
     ("app/services/nutrition.py", ["tests/test_nutrition.py"]),
+    ("app/services/food_estimator.py", ["tests/test_food_estimator.py"]),
 ]
 
 BINOP_SWAPS = {ast.Add: ast.Sub, ast.Sub: ast.Add, ast.Mult: ast.Div, ast.Div: ast.Mult}

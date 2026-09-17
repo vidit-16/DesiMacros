@@ -28,6 +28,10 @@ settings = get_settings()
 # running app uses.
 IFCT_DB_PATH = os.getenv("IFCT_DB_PATH", "data/ifct.db")
 
+# Model estimates for foods neither database has. On by default when a Groq key
+# is configured; FOOD_ESTIMATES=off restores the old zero-calorie behaviour.
+ESTIMATES_ENABLED = os.getenv("FOOD_ESTIMATES", "on").lower() != "off"
+
 
 @dataclass
 class NutritionPer100g:
@@ -65,7 +69,9 @@ IFCT_SEED_DATA = [
     ("aloo paratha",    "potato paratha,stuffed paratha",           259, 6.2, 37.4, 9.8, 2.5),
     ("poha",            "flattened rice,beaten rice,chivda",        180, 3.5, 34.2, 4.1, 1.2),
     ("upma",            "rava upma,semolina upma",                  153, 4.2, 22.1, 5.4, 1.8),
-    ("idli",            "idly",                                      58, 2.2, 11.3, 0.4, 0.6),
+    # Was 58 kcal, which is one 40 g idli entered as if it were 100 g, so every
+    # idli logged at under half its energy. Rescaled per 100 g.
+    ("idli",            "idly",                                     145, 5.5, 28.3, 1.0, 1.5),
     ("dosa",            "plain dosa,sada dosa",                     133, 4.4, 24.1, 2.7, 1.1),
     ("sambar",          "sambhar",                                   47, 2.9,  7.3, 0.9, 2.1),
     ("curd",            "dahi,yogurt,plain yogurt",                  62, 3.1,  4.7, 3.4, 0.0),
@@ -82,7 +88,10 @@ IFCT_SEED_DATA = [
     ("peanuts",         "groundnuts,moongfali",                    567,25.8, 16.1,49.2, 8.5),
     ("white bread",     "bread slice,pav,loaf bread",              265, 9.0, 49.0, 3.2, 2.7),
     ("cornflakes",      "breakfast cereal,corn flakes",            357, 7.0, 84.0, 0.9, 1.2),
-    ("oats",            "oatmeal,rolled oats,quaker oats",         389,16.9, 66.3, 6.9,10.6),
+    ("oats",            "rolled oats,quaker oats,dry oats",        389,16.9, 66.3, 6.9,10.6),
+    # Oats as eaten, cooked in water. Dry oats are 5x as energy-dense, so "a cup
+    # of oats made with water" logged as dry oats was off by a factor of six.
+    ("cooked oats",     "oatmeal,porridge,oats porridge,oat porridge", 71, 2.5, 12.0, 1.5, 1.7),
     # Added after evaluation: each of these was previously missing (logged as
     # 0 kcal) or matched to something unrelated in USDA.
     ("bhatura",         "bhature,batura",                          325, 6.0, 42.0,14.5, 1.5),
@@ -297,12 +306,6 @@ def search_usda(food_name: str) -> NutritionPer100g | None:
 # ── Unit → grams conversion ───────────────────────────────────────────────────
 
 UNIT_TO_GRAMS = {
-    "katori": 150,      # small steel bowl ~150ml
-    "bowl": 200,
-    "small bowl": 150,
-    "large bowl": 300,
-    "cup": 240,
-    "glass": 250,
     "plate": 300,       # a full plate of rice/biryani, not a token serving
     "thali": 500,
     "piece": 100,
@@ -312,15 +315,10 @@ UNIT_TO_GRAMS = {
     "paratha": 80,
     "idli": 40,
     "dosa": 100,
-    "tbsp": 15,
-    "tablespoon": 15,
-    "tsp": 5,
-    "teaspoon": 5,
     "g": 1,
     "gram": 1,
     "grams": 1,
     "handful": 30,
-    "ml": 1,
     "egg": 55,
     "banana": 120,
     "apple": 182,
@@ -338,7 +336,8 @@ PIECE_WEIGHTS = {
     "boiled egg": 55, "egg": 55, "omelette": 120, "scrambled eggs": 120,
     "bread": 30, "white bread": 30, "bread slice": 30, "toast": 30,
     "banana": 120, "apple": 182, "orange": 130, "mango": 200,
-    "samosa": 60, "pakora": 25, "laddu": 40, "gulab jamun": 40, "jalebi": 30,
+    "samosa": 60, "pakora": 25, "gulab jamun": 40, "jalebi": 30,
+    "laddu": 40, "ladoo": 40, "laddoo": 40, "ladu": 40,
     "biscuit": 12, "rusk": 15,
 }
 
@@ -364,14 +363,95 @@ def _piece_weight(food_name: str) -> float | None:
     return None
 
 
-def unit_to_grams(unit: str, quantity: float, food_name: str = "") -> float:
-    """Convert quantity + unit to grams, using the food name for counted units."""
+# Volume units, in millilitres. Weight is volume times the food's density, so a
+# katori of dal and a katori of cooked rice no longer weigh the same.
+UNIT_TO_ML = {
+    "katori": 150, "small bowl": 150, "bowl": 200, "large bowl": 300,
+    "cup": 240, "cups": 240, "glass": 250, "glasses": 250,
+    "tbsp": 15, "tablespoon": 15, "tablespoons": 15,
+    "tsp": 5, "teaspoon": 5, "teaspoons": 5, "ml": 1,
+    "can": 330, "cans": 330, "bottle": 500, "bottles": 500,
+}
+
+# "A serving" of a food with no piece weight: one katori, the usual Indian
+# serving of anything eaten from a bowl. Before this a serving was 100 g for
+# every food, whether curd, dal or biryani.
+SERVING_UNITS = {"serving", "servings", "portion", "portions"}
+
+SLICE_UNITS = {"slice", "slices"}
+
+# Grams in one 240 ml cup, for foods whose density is far from water's. Values
+# are USDA household measures for the food as served, except poha, khichdi,
+# paneer, muesli and maggi, which are approximations. Foods not listed are
+# treated as water (240 g), which is close for dal, curries, curd and milk.
+CUP_GRAMS = {
+    "rice": 158, "basmati rice": 158, "jeera rice": 158, "pulao": 158, "brown rice": 195,
+    "biryani": 196, "fried rice": 137,
+    "poha": 110, "upma": 170, "khichdi": 200,
+    "cornflakes": 28, "corn flakes": 28, "breakfast cereal": 28, "muesli": 85,
+    "oats": 81, "rolled oats": 81, "cooked oats": 234, "oatmeal": 234, "porridge": 234,
+    "peanuts": 146, "almonds": 143, "cashews": 137, "mixed nuts": 142,
+    "chickpeas": 164, "chole": 164, "kidney beans": 177, "rajma": 177,
+    "moong": 202, "moong dal": 202, "sprouts": 104, "lentils": 198,
+    "paneer": 150, "salad": 55, "noodles": 160, "pasta": 140, "maggi": 160,
+    "sugar": 200, "ghee": 205, "oil": 218, "atta": 120, "flour": 125,
+}
+
+
+def _lookup_by_name(table: dict, food_name: str) -> float | None:
+    """A per-food value, matching the longest key that appears in the name."""
+    name = (food_name or "").lower().strip()
+    if not name:
+        return None
+    if name in table:
+        return table[name]
+    for key in sorted(table, key=len, reverse=True):
+        if re.search(rf"\b{re.escape(key)}s?\b", name):
+            return table[key]
+    return None
+
+
+def unit_to_grams(
+    unit: str,
+    quantity: float,
+    food_name: str = "",
+    piece_grams: float | None = None,
+    cup_grams: float | None = None,
+) -> float:
+    """Convert quantity + unit to grams, using the food name for the weight.
+
+    ``piece_grams`` and ``cup_grams`` come from a model estimate for a food the
+    tables do not know. An exact table entry still wins, but the estimate beats
+    a partial name match: "vada pav" contains "vada", and a 45 g vada is not a
+    150 g vada pav.
+    """
     unit_lower = unit.lower().strip()
+    name = (food_name or "").lower().strip()
 
     if unit_lower in GENERIC_COUNT_UNITS:
-        per_piece = _piece_weight(food_name)
+        if piece_grams:
+            per_piece = PIECE_WEIGHTS.get(name) or piece_grams
+        else:
+            per_piece = _piece_weight(food_name)
         if per_piece:
             return quantity * per_piece
+        if unit_lower in SERVING_UNITS:
+            unit_lower = "katori"
+
+    if unit_lower in UNIT_TO_ML:
+        if cup_grams:
+            per_cup = CUP_GRAMS.get(name) or cup_grams
+        else:
+            per_cup = _lookup_by_name(CUP_GRAMS, food_name) or 240
+        return quantity * UNIT_TO_ML[unit_lower] * per_cup / 240
+
+    if unit_lower in SLICE_UNITS:
+        # A slice is 30 g of bread, but "2 slices of pizza" logged 60 g of
+        # pizza. For a food the tables do not know, one slice is the estimate's
+        # own piece weight.
+        if piece_grams and not _piece_weight(food_name):
+            return quantity * piece_grams
+        return quantity * UNIT_TO_GRAMS["slice"]
 
     if unit_lower in UNIT_TO_GRAMS:
         return quantity * UNIT_TO_GRAMS[unit_lower]
@@ -381,15 +461,30 @@ def unit_to_grams(unit: str, quantity: float, food_name: str = "") -> float:
     if per_piece:
         return quantity * per_piece
 
+    if piece_grams:
+        return quantity * piece_grams
+
     return quantity * 100  # default 100g if the unit is unknown
 
 
 # ── Main lookup ───────────────────────────────────────────────────────────────
 
+def estimate_food(food_name: str):
+    """Model estimate for a food no database has (see food_estimator)."""
+    if not ESTIMATES_ENABLED:
+        return None
+    from app.services.food_estimator import estimate_food as _estimate
+
+    return _estimate(food_name, IFCT_DB_PATH)
+
+
 def lookup_nutrition(food_name: str, quantity: float, unit: str) -> dict:
     """
     Full nutrition lookup for a meal item.
     Returns macros scaled to the actual quantity consumed.
+
+    Order: IFCT, then USDA, then a model estimate recorded as source
+    "estimate", and only then a zero-calorie "not_found" row.
     """
     grams = unit_to_grams(unit, quantity, food_name)
 
@@ -399,6 +494,17 @@ def lookup_nutrition(food_name: str, quantity: float, unit: str) -> dict:
     # Fall back to USDA
     if not nutrition:
         nutrition = search_usda(food_name)
+
+    if not nutrition:
+        estimate = estimate_food(food_name)
+        if estimate:
+            grams = unit_to_grams(unit, quantity, food_name,
+                                  piece_grams=estimate.grams_per_piece,
+                                  cup_grams=estimate.grams_per_cup)
+            nutrition = NutritionPer100g(
+                food_name=food_name, calories=estimate.calories, protein=estimate.protein,
+                carbs=estimate.carbs, fat=estimate.fat, fiber=estimate.fiber, source="estimate",
+            )
 
     if not nutrition:
         # Last resort: return zeros with a flag

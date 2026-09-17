@@ -1,0 +1,2447 @@
+{
+ "source": "USDA FoodData Central, FNDDS survey foods (2024-10-31), public domain",
+ "units_ml": {
+  "katori": 150,
+  "cup": 240,
+  "glass": 250,
+  "tablespoon": 15
+ },
+ "meals": [
+  {
+   "id": "meal_001",
+   "text": "2 rotis with a katori of dal",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "roti",
+     "fdc_id": "2707713",
+     "usda_description": "Bread, chappatti or roti",
+     "grams": 80.0,
+     "calories": 239.2,
+     "protein": 6.3,
+     "carbs": 36.9,
+     "fat": 7.4
+    },
+    {
+     "food": "dal",
+     "fdc_id": "2707427",
+     "usda_description": "Dal",
+     "grams": 150.0,
+     "calories": 217.5,
+     "protein": 12.9,
+     "carbs": 28.8,
+     "fat": 6.5
+    }
+   ],
+   "totals": {
+    "calories": 456.7,
+    "protein": 19.2,
+    "carbs": 65.7,
+    "fat": 13.9
+   }
+  },
+  {
+   "id": "meal_002",
+   "text": "had 3 chapatis and 1 katori dal for lunch",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "roti",
+     "fdc_id": "2707713",
+     "usda_description": "Bread, chappatti or roti",
+     "grams": 120.0,
+     "calories": 358.8,
+     "protein": 9.4,
+     "carbs": 55.3,
+     "fat": 11.0
+    },
+    {
+     "food": "dal",
+     "fdc_id": "2707427",
+     "usda_description": "Dal",
+     "grams": 150.0,
+     "calories": 217.5,
+     "protein": 12.9,
+     "carbs": 28.8,
+     "fat": 6.5
+    }
+   ],
+   "totals": {
+    "calories": 576.3,
+    "protein": 22.3,
+    "carbs": 84.1,
+    "fat": 17.5
+   }
+  },
+  {
+   "id": "meal_003",
+   "text": "a katori of rice with a katori of dal and a katori of curd",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "rice",
+     "fdc_id": "2708408",
+     "usda_description": "Rice, white, cooked, no added fat",
+     "grams": 98.8,
+     "calories": 127.4,
+     "protein": 2.6,
+     "carbs": 27.6,
+     "fat": 0.3
+    },
+    {
+     "food": "dal",
+     "fdc_id": "2707427",
+     "usda_description": "Dal",
+     "grams": 150.0,
+     "calories": 217.5,
+     "protein": 12.9,
+     "carbs": 28.8,
+     "fat": 6.5
+    },
+    {
+     "food": "curd",
+     "fdc_id": "2705418",
+     "usda_description": "Yogurt, whole milk, plain",
+     "grams": 153.1,
+     "calories": 119.4,
+     "protein": 5.8,
+     "carbs": 8.5,
+     "fat": 6.9
+    }
+   ],
+   "totals": {
+    "calories": 464.3,
+    "protein": 21.3,
+    "carbs": 64.9,
+    "fat": 13.7
+   }
+  },
+  {
+   "id": "meal_004",
+   "text": "dal chawal, one katori each",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "dal",
+     "fdc_id": "2707427",
+     "usda_description": "Dal",
+     "grams": 150.0,
+     "calories": 217.5,
+     "protein": 12.9,
+     "carbs": 28.8,
+     "fat": 6.5
+    },
+    {
+     "food": "rice",
+     "fdc_id": "2708408",
+     "usda_description": "Rice, white, cooked, no added fat",
+     "grams": 98.8,
+     "calories": 127.4,
+     "protein": 2.6,
+     "carbs": 27.6,
+     "fat": 0.3
+    }
+   ],
+   "totals": {
+    "calories": 344.9,
+    "protein": 15.5,
+    "carbs": 56.4,
+    "fat": 6.8
+   }
+  },
+  {
+   "id": "meal_005",
+   "text": "4 idlis with a katori of sambar",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "idli",
+     "fdc_id": "2708346",
+     "usda_description": "Idli",
+     "grams": 152.0,
+     "calories": 194.6,
+     "protein": 9.7,
+     "carbs": 38.0,
+     "fat": 0.5
+    },
+    {
+     "food": "sambar",
+     "fdc_id": "2707430",
+     "usda_description": "Sambar, vegetable stew",
+     "grams": 155.0,
+     "calories": 133.3,
+     "protein": 6.7,
+     "carbs": 18.3,
+     "fat": 4.2
+    }
+   ],
+   "totals": {
+    "calories": 327.9,
+    "protein": 16.4,
+    "carbs": 56.3,
+    "fat": 4.7
+   }
+  },
+  {
+   "id": "meal_006",
+   "text": "breakfast was 2 idli, 1 vada and sambar (1 katori)",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "idli",
+     "fdc_id": "2708346",
+     "usda_description": "Idli",
+     "grams": 76.0,
+     "calories": 97.3,
+     "protein": 4.8,
+     "carbs": 19.0,
+     "fat": 0.3
+    },
+    {
+     "food": "vada",
+     "fdc_id": "2709130",
+     "usda_description": "Vada",
+     "grams": 30.0,
+     "calories": 79.8,
+     "protein": 3.8,
+     "carbs": 10.0,
+     "fat": 2.9
+    },
+    {
+     "food": "sambar",
+     "fdc_id": "2707430",
+     "usda_description": "Sambar, vegetable stew",
+     "grams": 155.0,
+     "calories": 133.3,
+     "protein": 6.7,
+     "carbs": 18.3,
+     "fat": 4.2
+    }
+   ],
+   "totals": {
+    "calories": 310.4,
+    "protein": 15.3,
+    "carbs": 47.3,
+    "fat": 7.4
+   }
+  },
+  {
+   "id": "meal_007",
+   "text": "one masala dosa with sambar, 1 katori",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "masala dosa",
+     "fdc_id": "2709129",
+     "usda_description": "Dosa, with filling",
+     "grams": 267.0,
+     "calories": 491.3,
+     "protein": 14.6,
+     "carbs": 82.2,
+     "fat": 11.4
+    },
+    {
+     "food": "sambar",
+     "fdc_id": "2707430",
+     "usda_description": "Sambar, vegetable stew",
+     "grams": 155.0,
+     "calories": 133.3,
+     "protein": 6.7,
+     "carbs": 18.3,
+     "fat": 4.2
+    }
+   ],
+   "totals": {
+    "calories": 624.6,
+    "protein": 21.3,
+    "carbs": 100.5,
+    "fat": 15.6
+   }
+  },
+  {
+   "id": "meal_008",
+   "text": "2 plain dosas with 2 tablespoons of chutney",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "dosa",
+     "fdc_id": "2708347",
+     "usda_description": "Dosa, plain",
+     "grams": 160.0,
+     "calories": 336.0,
+     "protein": 9.1,
+     "carbs": 59.2,
+     "fat": 6.5
+    },
+    {
+     "food": "chutney",
+     "fdc_id": "2709309",
+     "usda_description": "Chutney",
+     "grams": 32.0,
+     "calories": 78.7,
+     "protein": 0.1,
+     "carbs": 19.4,
+     "fat": 0.0
+    }
+   ],
+   "totals": {
+    "calories": 414.7,
+    "protein": 9.2,
+    "carbs": 78.6,
+    "fat": 6.5
+   }
+  },
+  {
+   "id": "meal_009",
+   "text": "a katori of upma for breakfast",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "upma",
+     "fdc_id": "2709128",
+     "usda_description": "Upma",
+     "grams": 106.2,
+     "calories": 92.4,
+     "protein": 2.1,
+     "carbs": 14.7,
+     "fat": 2.8
+    }
+   ],
+   "totals": {
+    "calories": 92.4,
+    "protein": 2.1,
+    "carbs": 14.7,
+    "fat": 2.8
+   }
+  },
+  {
+   "id": "meal_010",
+   "text": "2 katori upma and a cup of latte",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "upma",
+     "fdc_id": "2709128",
+     "usda_description": "Upma",
+     "grams": 212.5,
+     "calories": 184.9,
+     "protein": 4.2,
+     "carbs": 29.3,
+     "fat": 5.6
+    },
+    {
+     "food": "latte",
+     "fdc_id": "2710386",
+     "usda_description": "Coffee, Latte",
+     "grams": 240.0,
+     "calories": 103.2,
+     "protein": 6.7,
+     "carbs": 10.4,
+     "fat": 3.9
+    }
+   ],
+   "totals": {
+    "calories": 288.1,
+    "protein": 10.9,
+    "carbs": 39.7,
+    "fat": 9.5
+   }
+  },
+  {
+   "id": "meal_011",
+   "text": "a cup of chicken biryani",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "chicken biryani",
+     "fdc_id": "2706538",
+     "usda_description": "Biryani with chicken",
+     "grams": 196.0,
+     "calories": 203.8,
+     "protein": 14.0,
+     "carbs": 26.7,
+     "fat": 4.7
+    }
+   ],
+   "totals": {
+    "calories": 203.8,
+    "protein": 14.0,
+    "carbs": 26.7,
+    "fat": 4.7
+   }
+  },
+  {
+   "id": "meal_012",
+   "text": "2 cups of veg biryani with a katori of curd",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "veg biryani",
+     "fdc_id": "2708985",
+     "usda_description": "Biryani with vegetables",
+     "grams": 344.0,
+     "calories": 375.0,
+     "protein": 6.6,
+     "carbs": 61.6,
+     "fat": 11.0
+    },
+    {
+     "food": "curd",
+     "fdc_id": "2705418",
+     "usda_description": "Yogurt, whole milk, plain",
+     "grams": 153.1,
+     "calories": 119.4,
+     "protein": 5.8,
+     "carbs": 8.5,
+     "fat": 6.9
+    }
+   ],
+   "totals": {
+    "calories": 494.4,
+    "protein": 12.4,
+    "carbs": 70.1,
+    "fat": 17.9
+   }
+  },
+  {
+   "id": "meal_013",
+   "text": "mutton biryani, 1.5 cups",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "mutton biryani",
+     "fdc_id": "2706490",
+     "usda_description": "Biryani with meat",
+     "grams": 294.0,
+     "calories": 426.3,
+     "protein": 25.0,
+     "carbs": 35.9,
+     "fat": 20.0
+    }
+   ],
+   "totals": {
+    "calories": 426.3,
+    "protein": 25.0,
+    "carbs": 35.9,
+    "fat": 20.0
+   }
+  },
+  {
+   "id": "meal_014",
+   "text": "2 rotis and a katori of chicken curry",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "roti",
+     "fdc_id": "2707713",
+     "usda_description": "Bread, chappatti or roti",
+     "grams": 80.0,
+     "calories": 239.2,
+     "protein": 6.3,
+     "carbs": 36.9,
+     "fat": 7.4
+    },
+    {
+     "food": "chicken curry",
+     "fdc_id": "2706437",
+     "usda_description": "Chicken curry",
+     "grams": 150.0,
+     "calories": 160.5,
+     "protein": 9.7,
+     "carbs": 9.8,
+     "fat": 9.7
+    }
+   ],
+   "totals": {
+    "calories": 399.7,
+    "protein": 16.0,
+    "carbs": 46.7,
+    "fat": 17.1
+   }
+  },
+  {
+   "id": "meal_015",
+   "text": "fish curry 1 katori with 1 cup rice",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "fish curry",
+     "fdc_id": "2706460",
+     "usda_description": "Fish curry",
+     "grams": 150.0,
+     "calories": 139.5,
+     "protein": 7.4,
+     "carbs": 10.0,
+     "fat": 8.1
+    },
+    {
+     "food": "rice",
+     "fdc_id": "2708408",
+     "usda_description": "Rice, white, cooked, no added fat",
+     "grams": 158.0,
+     "calories": 203.8,
+     "protein": 4.2,
+     "carbs": 44.2,
+     "fat": 0.4
+    }
+   ],
+   "totals": {
+    "calories": 343.3,
+    "protein": 11.6,
+    "carbs": 54.2,
+    "fat": 8.5
+   }
+  },
+  {
+   "id": "meal_016",
+   "text": "3 rotis with mixed vegetable curry, 1 katori",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "roti",
+     "fdc_id": "2707713",
+     "usda_description": "Bread, chappatti or roti",
+     "grams": 120.0,
+     "calories": 358.8,
+     "protein": 9.4,
+     "carbs": 55.3,
+     "fat": 11.0
+    },
+    {
+     "food": "vegetable curry",
+     "fdc_id": "2710067",
+     "usda_description": "Vegetable curry",
+     "grams": 150.0,
+     "calories": 129.0,
+     "protein": 2.4,
+     "carbs": 13.2,
+     "fat": 7.9
+    }
+   ],
+   "totals": {
+    "calories": 487.8,
+    "protein": 11.8,
+    "carbs": 68.5,
+    "fat": 18.9
+   }
+  },
+  {
+   "id": "meal_017",
+   "text": "palak paneer 1 katori and 2 rotis",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "palak paneer",
+     "fdc_id": "2709631",
+     "usda_description": "Palak Paneer",
+     "grams": 125.0,
+     "calories": 126.2,
+     "protein": 6.8,
+     "carbs": 5.3,
+     "fat": 8.8
+    },
+    {
+     "food": "roti",
+     "fdc_id": "2707713",
+     "usda_description": "Bread, chappatti or roti",
+     "grams": 80.0,
+     "calories": 239.2,
+     "protein": 6.3,
+     "carbs": 36.9,
+     "fat": 7.4
+    }
+   ],
+   "totals": {
+    "calories": 365.4,
+    "protein": 13.1,
+    "carbs": 42.2,
+    "fat": 16.2
+   }
+  },
+  {
+   "id": "meal_018",
+   "text": "1 naan with a katori of palak paneer",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "naan",
+     "fdc_id": "2707613",
+     "usda_description": "Bread, naan",
+     "grams": 177.0,
+     "calories": 550.5,
+     "protein": 19.6,
+     "carbs": 88.9,
+     "fat": 12.9
+    },
+    {
+     "food": "palak paneer",
+     "fdc_id": "2709631",
+     "usda_description": "Palak Paneer",
+     "grams": 125.0,
+     "calories": 126.2,
+     "protein": 6.8,
+     "carbs": 5.3,
+     "fat": 8.8
+    }
+   ],
+   "totals": {
+    "calories": 676.7,
+    "protein": 26.4,
+    "carbs": 94.2,
+    "fat": 21.7
+   }
+  },
+  {
+   "id": "meal_019",
+   "text": "100g paneer",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "paneer",
+     "fdc_id": "2705740",
+     "usda_description": "Cheese, paneer",
+     "grams": 100,
+     "calories": 299.0,
+     "protein": 15.9,
+     "carbs": 22.5,
+     "fat": 15.5
+    }
+   ],
+   "totals": {
+    "calories": 299.0,
+    "protein": 15.9,
+    "carbs": 22.5,
+    "fat": 15.5
+   }
+  },
+  {
+   "id": "meal_020",
+   "text": "150 grams of paneer and 2 rotis",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "paneer",
+     "fdc_id": "2705740",
+     "usda_description": "Cheese, paneer",
+     "grams": 150,
+     "calories": 448.5,
+     "protein": 23.9,
+     "carbs": 33.8,
+     "fat": 23.2
+    },
+    {
+     "food": "roti",
+     "fdc_id": "2707713",
+     "usda_description": "Bread, chappatti or roti",
+     "grams": 80.0,
+     "calories": 239.2,
+     "protein": 6.3,
+     "carbs": 36.9,
+     "fat": 7.4
+    }
+   ],
+   "totals": {
+    "calories": 687.7,
+    "protein": 30.2,
+    "carbs": 70.7,
+    "fat": 30.6
+   }
+  },
+  {
+   "id": "meal_021",
+   "text": "2 samosas",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "samosa",
+     "fdc_id": "2708730",
+     "usda_description": "Samosa",
+     "grams": 200.0,
+     "calories": 620.0,
+     "protein": 10.3,
+     "carbs": 66.4,
+     "fat": 35.0
+    }
+   ],
+   "totals": {
+    "calories": 620.0,
+    "protein": 10.3,
+    "carbs": 66.4,
+    "fat": 35.0
+   }
+  },
+  {
+   "id": "meal_022",
+   "text": "a samosa and a cup of latte",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "samosa",
+     "fdc_id": "2708730",
+     "usda_description": "Samosa",
+     "grams": 100.0,
+     "calories": 310.0,
+     "protein": 5.1,
+     "carbs": 33.2,
+     "fat": 17.5
+    },
+    {
+     "food": "latte",
+     "fdc_id": "2710386",
+     "usda_description": "Coffee, Latte",
+     "grams": 240.0,
+     "calories": 103.2,
+     "protein": 6.7,
+     "carbs": 10.4,
+     "fat": 3.9
+    }
+   ],
+   "totals": {
+    "calories": 413.2,
+    "protein": 11.8,
+    "carbs": 43.6,
+    "fat": 21.4
+   }
+  },
+  {
+   "id": "meal_023",
+   "text": "6 pakoras with 1 tbsp chutney",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "pakora",
+     "fdc_id": "2710066",
+     "usda_description": "Pakora",
+     "grams": 72.0,
+     "calories": 90.0,
+     "protein": 3.5,
+     "carbs": 11.7,
+     "fat": 3.4
+    },
+    {
+     "food": "chutney",
+     "fdc_id": "2709309",
+     "usda_description": "Chutney",
+     "grams": 16.0,
+     "calories": 39.4,
+     "protein": 0.1,
+     "carbs": 9.7,
+     "fat": 0.0
+    }
+   ],
+   "totals": {
+    "calories": 129.4,
+    "protein": 3.6,
+    "carbs": 21.4,
+    "fat": 3.4
+   }
+  },
+  {
+   "id": "meal_024",
+   "text": "2 papads with dal and rice, 1 katori each",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "papad",
+     "fdc_id": "2707429",
+     "usda_description": "Papad, grilled or broiled",
+     "grams": 18.0,
+     "calories": 66.8,
+     "protein": 4.6,
+     "carbs": 10.8,
+     "fat": 0.6
+    },
+    {
+     "food": "dal",
+     "fdc_id": "2707427",
+     "usda_description": "Dal",
+     "grams": 150.0,
+     "calories": 217.5,
+     "protein": 12.9,
+     "carbs": 28.8,
+     "fat": 6.5
+    },
+    {
+     "food": "rice",
+     "fdc_id": "2708408",
+     "usda_description": "Rice, white, cooked, no added fat",
+     "grams": 98.8,
+     "calories": 127.4,
+     "protein": 2.6,
+     "carbs": 27.6,
+     "fat": 0.3
+    }
+   ],
+   "totals": {
+    "calories": 411.7,
+    "protein": 20.1,
+    "carbs": 67.2,
+    "fat": 7.4
+   }
+  },
+  {
+   "id": "meal_025",
+   "text": "one ladoo",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "ladoo",
+     "fdc_id": "2710351",
+     "usda_description": "Ladoo, round ball",
+     "grams": 60.0,
+     "calories": 246.6,
+     "protein": 4.2,
+     "carbs": 28.0,
+     "fat": 13.3
+    }
+   ],
+   "totals": {
+    "calories": 246.6,
+    "protein": 4.2,
+    "carbs": 28.0,
+    "fat": 13.3
+   }
+  },
+  {
+   "id": "meal_026",
+   "text": "2 besan ladoos after dinner",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "ladoo",
+     "fdc_id": "2710351",
+     "usda_description": "Ladoo, round ball",
+     "grams": 120.0,
+     "calories": 493.2,
+     "protein": 8.3,
+     "carbs": 56.0,
+     "fat": 26.6
+    }
+   ],
+   "totals": {
+    "calories": 493.2,
+    "protein": 8.3,
+    "carbs": 56.0,
+    "fat": 26.6
+   }
+  },
+  {
+   "id": "meal_027",
+   "text": "2 plain parathas with a katori of curd",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "paratha",
+     "fdc_id": "2707715",
+     "usda_description": "Bread, paratha",
+     "grams": 140.0,
+     "calories": 456.4,
+     "protein": 8.9,
+     "carbs": 63.6,
+     "fat": 18.5
+    },
+    {
+     "food": "curd",
+     "fdc_id": "2705418",
+     "usda_description": "Yogurt, whole milk, plain",
+     "grams": 153.1,
+     "calories": 119.4,
+     "protein": 5.8,
+     "carbs": 8.5,
+     "fat": 6.9
+    }
+   ],
+   "totals": {
+    "calories": 575.8,
+    "protein": 14.7,
+    "carbs": 72.1,
+    "fat": 25.4
+   }
+  },
+  {
+   "id": "meal_028",
+   "text": "1 paratha with 1 tsp ghee",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "paratha",
+     "fdc_id": "2707715",
+     "usda_description": "Bread, paratha",
+     "grams": 70.0,
+     "calories": 228.2,
+     "protein": 4.5,
+     "carbs": 31.8,
+     "fat": 9.2
+    },
+    {
+     "food": "ghee",
+     "fdc_id": "2710168",
+     "usda_description": "Ghee, clarified butter",
+     "grams": 4.7,
+     "calories": 40.9,
+     "protein": 0.0,
+     "carbs": 0.0,
+     "fat": 4.6
+    }
+   ],
+   "totals": {
+    "calories": 269.1,
+    "protein": 4.5,
+    "carbs": 31.8,
+    "fat": 13.8
+   }
+  },
+  {
+   "id": "meal_029",
+   "text": "3 puris with a katori of vegetable curry",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "puri",
+     "fdc_id": "2707714",
+     "usda_description": "Bread, puri",
+     "grams": 108.0,
+     "calories": 441.7,
+     "protein": 7.4,
+     "carbs": 42.3,
+     "fat": 26.9
+    },
+    {
+     "food": "vegetable curry",
+     "fdc_id": "2710067",
+     "usda_description": "Vegetable curry",
+     "grams": 150.0,
+     "calories": 129.0,
+     "protein": 2.4,
+     "carbs": 13.2,
+     "fat": 7.9
+    }
+   ],
+   "totals": {
+    "calories": 570.7,
+    "protein": 9.8,
+    "carbs": 55.5,
+    "fat": 34.8
+   }
+  },
+  {
+   "id": "meal_030",
+   "text": "5 puris",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "puri",
+     "fdc_id": "2707714",
+     "usda_description": "Bread, puri",
+     "grams": 180.0,
+     "calories": 736.2,
+     "protein": 12.3,
+     "carbs": 70.6,
+     "fat": 44.8
+    }
+   ],
+   "totals": {
+    "calories": 736.2,
+    "protein": 12.3,
+    "carbs": 70.6,
+    "fat": 44.8
+   }
+  },
+  {
+   "id": "meal_031",
+   "text": "2 boiled eggs and 2 slices of bread",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "boiled egg",
+     "fdc_id": "2707154",
+     "usda_description": "Egg, whole, boiled or poached",
+     "grams": 100.0,
+     "calories": 143.0,
+     "protein": 12.4,
+     "carbs": 1.0,
+     "fat": 10.0
+    },
+    {
+     "food": "bread",
+     "fdc_id": "2707598",
+     "usda_description": "Bread, white",
+     "grams": 56.0,
+     "calories": 149.5,
+     "protein": 5.3,
+     "carbs": 27.6,
+     "fat": 2.0
+    }
+   ],
+   "totals": {
+    "calories": 292.5,
+    "protein": 17.7,
+    "carbs": 28.6,
+    "fat": 12.0
+   }
+  },
+  {
+   "id": "meal_032",
+   "text": "3 egg omelette with 2 bread slices",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "omelette egg",
+     "fdc_id": "2707200",
+     "usda_description": "Egg omelet or scrambled egg, made with oil",
+     "grams": 165.0,
+     "calories": 316.8,
+     "protein": 19.1,
+     "carbs": 1.5,
+     "fat": 26.1
+    },
+    {
+     "food": "bread",
+     "fdc_id": "2707598",
+     "usda_description": "Bread, white",
+     "grams": 56.0,
+     "calories": 149.5,
+     "protein": 5.3,
+     "carbs": 27.6,
+     "fat": 2.0
+    }
+   ],
+   "totals": {
+    "calories": 466.3,
+    "protein": 24.4,
+    "carbs": 29.1,
+    "fat": 28.1
+   }
+  },
+  {
+   "id": "meal_033",
+   "text": "4 boiled eggs",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "boiled egg",
+     "fdc_id": "2707154",
+     "usda_description": "Egg, whole, boiled or poached",
+     "grams": 200.0,
+     "calories": 286.0,
+     "protein": 24.8,
+     "carbs": 1.9,
+     "fat": 19.9
+    }
+   ],
+   "totals": {
+    "calories": 286.0,
+    "protein": 24.8,
+    "carbs": 1.9,
+    "fat": 19.9
+   }
+  },
+  {
+   "id": "meal_034",
+   "text": "a glass of milk",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "milk",
+     "fdc_id": "2705385",
+     "usda_description": "Milk, whole",
+     "grams": 254.2,
+     "calories": 155.0,
+     "protein": 8.3,
+     "carbs": 11.8,
+     "fat": 8.1
+    }
+   ],
+   "totals": {
+    "calories": 155.0,
+    "protein": 8.3,
+    "carbs": 11.8,
+    "fat": 8.1
+   }
+  },
+  {
+   "id": "meal_035",
+   "text": "2 glasses of milk and a banana",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "milk",
+     "fdc_id": "2705385",
+     "usda_description": "Milk, whole",
+     "grams": 508.3,
+     "calories": 310.1,
+     "protein": 16.6,
+     "carbs": 23.5,
+     "fat": 16.3
+    },
+    {
+     "food": "banana",
+     "fdc_id": "2709224",
+     "usda_description": "Banana, raw",
+     "grams": 126.0,
+     "calories": 122.2,
+     "protein": 0.9,
+     "carbs": 28.6,
+     "fat": 0.4
+    }
+   ],
+   "totals": {
+    "calories": 432.3,
+    "protein": 17.5,
+    "carbs": 52.1,
+    "fat": 16.7
+   }
+  },
+  {
+   "id": "meal_036",
+   "text": "a glass of buttermilk",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "buttermilk",
+     "fdc_id": "2705393",
+     "usda_description": "Buttermilk",
+     "grams": 254.2,
+     "calories": 109.3,
+     "protein": 8.8,
+     "carbs": 12.2,
+     "fat": 2.7
+    }
+   ],
+   "totals": {
+    "calories": 109.3,
+    "protein": 8.8,
+    "carbs": 12.2,
+    "fat": 2.7
+   }
+  },
+  {
+   "id": "meal_037",
+   "text": "1 katori curd with 1 tsp sugar",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "curd",
+     "fdc_id": "2705418",
+     "usda_description": "Yogurt, whole milk, plain",
+     "grams": 153.1,
+     "calories": 119.4,
+     "protein": 5.8,
+     "carbs": 8.5,
+     "fat": 6.9
+    },
+    {
+     "food": "sugar",
+     "fdc_id": "2710258",
+     "usda_description": "Sugar, white, granulated or lump",
+     "grams": 4.2,
+     "calories": 16.8,
+     "protein": 0.0,
+     "carbs": 4.2,
+     "fat": 0.0
+    }
+   ],
+   "totals": {
+    "calories": 136.2,
+    "protein": 5.8,
+    "carbs": 12.7,
+    "fat": 6.9
+   }
+  },
+  {
+   "id": "meal_038",
+   "text": "a banana and an apple",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "banana",
+     "fdc_id": "2709224",
+     "usda_description": "Banana, raw",
+     "grams": 126.0,
+     "calories": 122.2,
+     "protein": 0.9,
+     "carbs": 28.6,
+     "fat": 0.4
+    },
+    {
+     "food": "apple",
+     "fdc_id": "2709215",
+     "usda_description": "Apple, raw",
+     "grams": 200.0,
+     "calories": 122.0,
+     "protein": 0.3,
+     "carbs": 29.6,
+     "fat": 0.3
+    }
+   ],
+   "totals": {
+    "calories": 244.2,
+    "protein": 1.2,
+    "carbs": 58.2,
+    "fat": 0.7
+   }
+  },
+  {
+   "id": "meal_039",
+   "text": "2 bananas",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "banana",
+     "fdc_id": "2709224",
+     "usda_description": "Banana, raw",
+     "grams": 252.0,
+     "calories": 244.4,
+     "protein": 1.9,
+     "carbs": 57.2,
+     "fat": 0.7
+    }
+   ],
+   "totals": {
+    "calories": 244.4,
+    "protein": 1.9,
+    "carbs": 57.2,
+    "fat": 0.7
+   }
+  },
+  {
+   "id": "meal_040",
+   "text": "one orange",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "orange",
+     "fdc_id": "2709171",
+     "usda_description": "Orange, raw",
+     "grams": 154.0,
+     "calories": 77.0,
+     "protein": 1.4,
+     "carbs": 18.2,
+     "fat": 0.2
+    }
+   ],
+   "totals": {
+    "calories": 77.0,
+    "protein": 1.4,
+    "carbs": 18.2,
+    "fat": 0.2
+   }
+  },
+  {
+   "id": "meal_041",
+   "text": "a mango",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "mango",
+     "fdc_id": "2709242",
+     "usda_description": "Mango, raw",
+     "grams": 210.0,
+     "calories": 126.0,
+     "protein": 1.7,
+     "carbs": 31.5,
+     "fat": 0.8
+    }
+   ],
+   "totals": {
+    "calories": 126.0,
+    "protein": 1.7,
+    "carbs": 31.5,
+    "fat": 0.8
+   }
+  },
+  {
+   "id": "meal_042",
+   "text": "30g roasted peanuts",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "peanuts",
+     "fdc_id": "2707515",
+     "usda_description": "Peanuts, roasted, salted",
+     "grams": 30,
+     "calories": 179.7,
+     "protein": 8.4,
+     "carbs": 4.6,
+     "fat": 15.8
+    }
+   ],
+   "totals": {
+    "calories": 179.7,
+    "protein": 8.4,
+    "carbs": 4.6,
+    "fat": 15.8
+   }
+  },
+  {
+   "id": "meal_043",
+   "text": "50 grams of peanuts",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "peanuts",
+     "fdc_id": "2707515",
+     "usda_description": "Peanuts, roasted, salted",
+     "grams": 50,
+     "calories": 299.5,
+     "protein": 14.0,
+     "carbs": 7.7,
+     "fat": 26.2
+    }
+   ],
+   "totals": {
+    "calories": 299.5,
+    "protein": 14.0,
+    "carbs": 7.7,
+    "fat": 26.2
+   }
+  },
+  {
+   "id": "meal_044",
+   "text": "10 almonds",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "almonds",
+     "fdc_id": "2707489",
+     "usda_description": "Almonds, unsalted",
+     "grams": 12.0,
+     "calories": 72.8,
+     "protein": 2.4,
+     "carbs": 2.4,
+     "fat": 6.5
+    }
+   ],
+   "totals": {
+    "calories": 72.8,
+    "protein": 2.4,
+    "carbs": 2.4,
+    "fat": 6.5
+   }
+  },
+  {
+   "id": "meal_045",
+   "text": "15 cashews and 10 almonds",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "cashews",
+     "fdc_id": "2707497",
+     "usda_description": "Cashews, unsalted",
+     "grams": 22.5,
+     "calories": 131.4,
+     "protein": 3.3,
+     "carbs": 7.1,
+     "fat": 10.8
+    },
+    {
+     "food": "almonds",
+     "fdc_id": "2707489",
+     "usda_description": "Almonds, unsalted",
+     "grams": 12.0,
+     "calories": 72.8,
+     "protein": 2.4,
+     "carbs": 2.4,
+     "fat": 6.5
+    }
+   ],
+   "totals": {
+    "calories": 204.2,
+    "protein": 5.7,
+    "carbs": 9.5,
+    "fat": 17.3
+   }
+  },
+  {
+   "id": "meal_046",
+   "text": "a katori of boiled chickpeas",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "chickpeas",
+     "fdc_id": "2707416",
+     "usda_description": "Chickpeas, from dried, no added fat",
+     "grams": 112.5,
+     "calories": 183.4,
+     "protein": 9.9,
+     "carbs": 30.7,
+     "fat": 2.9
+    }
+   ],
+   "totals": {
+    "calories": 183.4,
+    "protein": 9.9,
+    "carbs": 30.7,
+    "fat": 2.9
+   }
+  },
+  {
+   "id": "meal_047",
+   "text": "1 cup boiled kidney beans with 1 cup rice",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "kidney beans",
+     "fdc_id": "2707381",
+     "usda_description": "Kidney beans, from dried, no added fat",
+     "grams": 180.0,
+     "calories": 226.8,
+     "protein": 15.5,
+     "carbs": 40.9,
+     "fat": 0.9
+    },
+    {
+     "food": "rice",
+     "fdc_id": "2708408",
+     "usda_description": "Rice, white, cooked, no added fat",
+     "grams": 158.0,
+     "calories": 203.8,
+     "protein": 4.2,
+     "carbs": 44.2,
+     "fat": 0.4
+    }
+   ],
+   "totals": {
+    "calories": 430.6,
+    "protein": 19.7,
+    "carbs": 85.1,
+    "fat": 1.3
+   }
+  },
+  {
+   "id": "meal_048",
+   "text": "a katori of boiled moong",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "moong",
+     "fdc_id": "2707389",
+     "usda_description": "Mung beans, cooked",
+     "grams": 115.6,
+     "calories": 180.4,
+     "protein": 7.5,
+     "carbs": 20.6,
+     "fat": 7.9
+    }
+   ],
+   "totals": {
+    "calories": 180.4,
+    "protein": 7.5,
+    "carbs": 20.6,
+    "fat": 7.9
+   }
+  },
+  {
+   "id": "meal_049",
+   "text": "a cup of cornflakes with a glass of milk",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "cornflakes",
+     "fdc_id": "2708453",
+     "usda_description": "Cereal, corn flakes, plain",
+     "grams": 30.0,
+     "calories": 109.5,
+     "protein": 1.9,
+     "carbs": 23.9,
+     "fat": 0.5
+    },
+    {
+     "food": "milk",
+     "fdc_id": "2705385",
+     "usda_description": "Milk, whole",
+     "grams": 254.2,
+     "calories": 155.0,
+     "protein": 8.3,
+     "carbs": 11.8,
+     "fat": 8.1
+    }
+   ],
+   "totals": {
+    "calories": 264.5,
+    "protein": 10.2,
+    "carbs": 35.7,
+    "fat": 8.6
+   }
+  },
+  {
+   "id": "meal_050",
+   "text": "2 cups of cornflakes with 1 cup milk",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "cornflakes",
+     "fdc_id": "2708453",
+     "usda_description": "Cereal, corn flakes, plain",
+     "grams": 60.0,
+     "calories": 219.0,
+     "protein": 3.8,
+     "carbs": 47.7,
+     "fat": 1.0
+    },
+    {
+     "food": "milk",
+     "fdc_id": "2705385",
+     "usda_description": "Milk, whole",
+     "grams": 244.0,
+     "calories": 148.8,
+     "protein": 8.0,
+     "carbs": 11.3,
+     "fat": 7.8
+    }
+   ],
+   "totals": {
+    "calories": 367.8,
+    "protein": 11.8,
+    "carbs": 59.0,
+    "fat": 8.8
+   }
+  },
+  {
+   "id": "meal_051",
+   "text": "a grilled chicken breast",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "chicken breast",
+     "fdc_id": "2705956",
+     "usda_description": "Chicken breast, baked, broiled, or roasted, skin not eaten, from raw",
+     "grams": 120.0,
+     "calories": 193.2,
+     "protein": 36.2,
+     "carbs": 0.0,
+     "fat": 4.2
+    }
+   ],
+   "totals": {
+    "calories": 193.2,
+    "protein": 36.2,
+    "carbs": 0.0,
+    "fat": 4.2
+   }
+  },
+  {
+   "id": "meal_052",
+   "text": "200g grilled chicken breast with 1 cup rice",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "chicken breast",
+     "fdc_id": "2705956",
+     "usda_description": "Chicken breast, baked, broiled, or roasted, skin not eaten, from raw",
+     "grams": 200,
+     "calories": 322.0,
+     "protein": 60.4,
+     "carbs": 0.0,
+     "fat": 7.0
+    },
+    {
+     "food": "rice",
+     "fdc_id": "2708408",
+     "usda_description": "Rice, white, cooked, no added fat",
+     "grams": 158.0,
+     "calories": 203.8,
+     "protein": 4.2,
+     "carbs": 44.2,
+     "fat": 0.4
+    }
+   ],
+   "totals": {
+    "calories": 525.8,
+    "protein": 64.6,
+    "carbs": 44.2,
+    "fat": 7.4
+   }
+  },
+  {
+   "id": "meal_053",
+   "text": "2 boiled potatoes",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "potato",
+     "fdc_id": "2709385",
+     "usda_description": "Potato, boiled, NFS",
+     "grams": 340.0,
+     "calories": 428.4,
+     "protein": 6.4,
+     "carbs": 69.4,
+     "fat": 14.4
+    }
+   ],
+   "totals": {
+    "calories": 428.4,
+    "protein": 6.4,
+    "carbs": 69.4,
+    "fat": 14.4
+   }
+  },
+  {
+   "id": "meal_054",
+   "text": "a cup of oats made with water",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "oats",
+     "fdc_id": "2708381",
+     "usda_description": "Oatmeal, regular or quick, made with water, no added fat",
+     "grams": 240.0,
+     "calories": 153.6,
+     "protein": 5.3,
+     "carbs": 27.4,
+     "fat": 2.6
+    }
+   ],
+   "totals": {
+    "calories": 153.6,
+    "protein": 5.3,
+    "carbs": 27.4,
+    "fat": 2.6
+   }
+  },
+  {
+   "id": "meal_055",
+   "text": "a can of coke",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "cola",
+     "fdc_id": "2710541",
+     "usda_description": "Soft drink, cola",
+     "grams": 372.0,
+     "calories": 156.2,
+     "protein": 0.0,
+     "carbs": 38.7,
+     "fat": 0.9
+    }
+   ],
+   "totals": {
+    "calories": 156.2,
+    "protein": 0.0,
+    "carbs": 38.7,
+    "fat": 0.9
+   }
+  },
+  {
+   "id": "meal_056",
+   "text": "a veg sandwich",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "veg sandwich",
+     "fdc_id": "2709132",
+     "usda_description": "Vegetable sandwich on white",
+     "grams": 165.0,
+     "calories": 198.0,
+     "protein": 6.5,
+     "carbs": 35.5,
+     "fat": 3.5
+    }
+   ],
+   "totals": {
+    "calories": 198.0,
+    "protein": 6.5,
+    "carbs": 35.5,
+    "fat": 3.5
+   }
+  },
+  {
+   "id": "meal_057",
+   "text": "cheese sandwich and a cup of latte",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "cheese sandwich",
+     "fdc_id": "2705794",
+     "usda_description": "Cheese sandwich, NFS",
+     "grams": 102.0,
+     "calories": 302.9,
+     "protein": 12.8,
+     "carbs": 32.5,
+     "fat": 13.6
+    },
+    {
+     "food": "latte",
+     "fdc_id": "2710386",
+     "usda_description": "Coffee, Latte",
+     "grams": 240.0,
+     "calories": 103.2,
+     "protein": 6.7,
+     "carbs": 10.4,
+     "fat": 3.9
+    }
+   ],
+   "totals": {
+    "calories": 406.1,
+    "protein": 19.5,
+    "carbs": 42.9,
+    "fat": 17.5
+   }
+  },
+  {
+   "id": "meal_058",
+   "text": "2 slices of cheese pizza",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "pizza",
+     "fdc_id": "2708615",
+     "usda_description": "Pizza, cheese, from restaurant or fast food, thin crust",
+     "grams": 172.0,
+     "calories": 457.5,
+     "protein": 19.6,
+     "carbs": 57.3,
+     "fat": 16.7
+    }
+   ],
+   "totals": {
+    "calories": 457.5,
+    "protein": 19.6,
+    "carbs": 57.3,
+    "fat": 16.7
+   }
+  },
+  {
+   "id": "meal_059",
+   "text": "a cup of boiled noodles",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "noodles",
+     "fdc_id": "2708352",
+     "usda_description": "Noodles, cooked",
+     "grams": 160.0,
+     "calories": 219.2,
+     "protein": 7.2,
+     "carbs": 40.0,
+     "fat": 3.3
+    }
+   ],
+   "totals": {
+    "calories": 219.2,
+    "protein": 7.2,
+    "carbs": 40.0,
+    "fat": 3.3
+   }
+  },
+  {
+   "id": "meal_060",
+   "text": "1 cup brown rice with 1 katori dal",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "brown rice",
+     "fdc_id": "2708414",
+     "usda_description": "Rice, brown, cooked, no added fat",
+     "grams": 195.0,
+     "calories": 239.8,
+     "protein": 4.7,
+     "carbs": 50.3,
+     "fat": 2.2
+    },
+    {
+     "food": "dal",
+     "fdc_id": "2707427",
+     "usda_description": "Dal",
+     "grams": 150.0,
+     "calories": 217.5,
+     "protein": 12.9,
+     "carbs": 28.8,
+     "fat": 6.5
+    }
+   ],
+   "totals": {
+    "calories": 457.3,
+    "protein": 17.6,
+    "carbs": 79.1,
+    "fat": 8.7
+   }
+  },
+  {
+   "id": "meal_061",
+   "text": "lunch: 2 rotis, 1 katori dal, 1 katori curd, dinner: 1 cup rice and 1 katori chicken curry",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "roti",
+     "fdc_id": "2707713",
+     "usda_description": "Bread, chappatti or roti",
+     "grams": 80.0,
+     "calories": 239.2,
+     "protein": 6.3,
+     "carbs": 36.9,
+     "fat": 7.4
+    },
+    {
+     "food": "dal",
+     "fdc_id": "2707427",
+     "usda_description": "Dal",
+     "grams": 150.0,
+     "calories": 217.5,
+     "protein": 12.9,
+     "carbs": 28.8,
+     "fat": 6.5
+    },
+    {
+     "food": "curd",
+     "fdc_id": "2705418",
+     "usda_description": "Yogurt, whole milk, plain",
+     "grams": 153.1,
+     "calories": 119.4,
+     "protein": 5.8,
+     "carbs": 8.5,
+     "fat": 6.9
+    },
+    {
+     "food": "rice",
+     "fdc_id": "2708408",
+     "usda_description": "Rice, white, cooked, no added fat",
+     "grams": 158.0,
+     "calories": 203.8,
+     "protein": 4.2,
+     "carbs": 44.2,
+     "fat": 0.4
+    },
+    {
+     "food": "chicken curry",
+     "fdc_id": "2706437",
+     "usda_description": "Chicken curry",
+     "grams": 150.0,
+     "calories": 160.5,
+     "protein": 9.7,
+     "carbs": 9.8,
+     "fat": 9.7
+    }
+   ],
+   "totals": {
+    "calories": 940.4,
+    "protein": 38.9,
+    "carbs": 128.2,
+    "fat": 30.9
+   }
+  },
+  {
+   "id": "meal_062",
+   "text": "breakfast 3 idli and sambar 1 katori, lunch 2 roti with vegetable curry 1 katori",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "idli",
+     "fdc_id": "2708346",
+     "usda_description": "Idli",
+     "grams": 114.0,
+     "calories": 145.9,
+     "protein": 7.3,
+     "carbs": 28.5,
+     "fat": 0.4
+    },
+    {
+     "food": "sambar",
+     "fdc_id": "2707430",
+     "usda_description": "Sambar, vegetable stew",
+     "grams": 155.0,
+     "calories": 133.3,
+     "protein": 6.7,
+     "carbs": 18.3,
+     "fat": 4.2
+    },
+    {
+     "food": "roti",
+     "fdc_id": "2707713",
+     "usda_description": "Bread, chappatti or roti",
+     "grams": 80.0,
+     "calories": 239.2,
+     "protein": 6.3,
+     "carbs": 36.9,
+     "fat": 7.4
+    },
+    {
+     "food": "vegetable curry",
+     "fdc_id": "2710067",
+     "usda_description": "Vegetable curry",
+     "grams": 150.0,
+     "calories": 129.0,
+     "protein": 2.4,
+     "carbs": 13.2,
+     "fat": 7.9
+    }
+   ],
+   "totals": {
+    "calories": 647.4,
+    "protein": 22.7,
+    "carbs": 96.9,
+    "fat": 19.9
+   }
+  },
+  {
+   "id": "meal_063",
+   "text": "had 2 parathas with curd (1 katori) in the morning and a glass of milk at night",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "paratha",
+     "fdc_id": "2707715",
+     "usda_description": "Bread, paratha",
+     "grams": 140.0,
+     "calories": 456.4,
+     "protein": 8.9,
+     "carbs": 63.6,
+     "fat": 18.5
+    },
+    {
+     "food": "curd",
+     "fdc_id": "2705418",
+     "usda_description": "Yogurt, whole milk, plain",
+     "grams": 153.1,
+     "calories": 119.4,
+     "protein": 5.8,
+     "carbs": 8.5,
+     "fat": 6.9
+    },
+    {
+     "food": "milk",
+     "fdc_id": "2705385",
+     "usda_description": "Milk, whole",
+     "grams": 254.2,
+     "calories": 155.0,
+     "protein": 8.3,
+     "carbs": 11.8,
+     "fat": 8.1
+    }
+   ],
+   "totals": {
+    "calories": 730.8,
+    "protein": 23.0,
+    "carbs": 83.9,
+    "fat": 33.5
+   }
+  },
+  {
+   "id": "meal_064",
+   "text": "snack: 2 samosas and 1 tbsp chutney",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "samosa",
+     "fdc_id": "2708730",
+     "usda_description": "Samosa",
+     "grams": 200.0,
+     "calories": 620.0,
+     "protein": 10.3,
+     "carbs": 66.4,
+     "fat": 35.0
+    },
+    {
+     "food": "chutney",
+     "fdc_id": "2709309",
+     "usda_description": "Chutney",
+     "grams": 16.0,
+     "calories": 39.4,
+     "protein": 0.1,
+     "carbs": 9.7,
+     "fat": 0.0
+    }
+   ],
+   "totals": {
+    "calories": 659.4,
+    "protein": 10.4,
+    "carbs": 76.1,
+    "fat": 35.0
+   }
+  },
+  {
+   "id": "meal_065",
+   "text": "an apple and 30g peanuts",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "apple",
+     "fdc_id": "2709215",
+     "usda_description": "Apple, raw",
+     "grams": 200.0,
+     "calories": 122.0,
+     "protein": 0.3,
+     "carbs": 29.6,
+     "fat": 0.3
+    },
+    {
+     "food": "peanuts",
+     "fdc_id": "2707515",
+     "usda_description": "Peanuts, roasted, salted",
+     "grams": 30,
+     "calories": 179.7,
+     "protein": 8.4,
+     "carbs": 4.6,
+     "fat": 15.8
+    }
+   ],
+   "totals": {
+    "calories": 301.7,
+    "protein": 8.7,
+    "carbs": 34.2,
+    "fat": 16.1
+   }
+  },
+  {
+   "id": "meal_066",
+   "text": "2 egg omelette, 2 slices bread and a glass of milk",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "omelette egg",
+     "fdc_id": "2707200",
+     "usda_description": "Egg omelet or scrambled egg, made with oil",
+     "grams": 110.0,
+     "calories": 211.2,
+     "protein": 12.8,
+     "carbs": 1.0,
+     "fat": 17.4
+    },
+    {
+     "food": "bread",
+     "fdc_id": "2707598",
+     "usda_description": "Bread, white",
+     "grams": 56.0,
+     "calories": 149.5,
+     "protein": 5.3,
+     "carbs": 27.6,
+     "fat": 2.0
+    },
+    {
+     "food": "milk",
+     "fdc_id": "2705385",
+     "usda_description": "Milk, whole",
+     "grams": 254.2,
+     "calories": 155.0,
+     "protein": 8.3,
+     "carbs": 11.8,
+     "fat": 8.1
+    }
+   ],
+   "totals": {
+    "calories": 515.7,
+    "protein": 26.4,
+    "carbs": 40.4,
+    "fat": 27.5
+   }
+  },
+  {
+   "id": "meal_067",
+   "text": "half katori dal and 2 rotis",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "dal",
+     "fdc_id": "2707427",
+     "usda_description": "Dal",
+     "grams": 75.0,
+     "calories": 108.8,
+     "protein": 6.5,
+     "carbs": 14.4,
+     "fat": 3.2
+    },
+    {
+     "food": "roti",
+     "fdc_id": "2707713",
+     "usda_description": "Bread, chappatti or roti",
+     "grams": 80.0,
+     "calories": 239.2,
+     "protein": 6.3,
+     "carbs": 36.9,
+     "fat": 7.4
+    }
+   ],
+   "totals": {
+    "calories": 348.0,
+    "protein": 12.8,
+    "carbs": 51.3,
+    "fat": 10.6
+   }
+  },
+  {
+   "id": "meal_068",
+   "text": "1.5 katori rice with 1 katori sambar",
+   "split": "test",
+   "unsized": false,
+   "items": [
+    {
+     "food": "rice",
+     "fdc_id": "2708408",
+     "usda_description": "Rice, white, cooked, no added fat",
+     "grams": 148.1,
+     "calories": 191.1,
+     "protein": 4.0,
+     "carbs": 41.5,
+     "fat": 0.4
+    },
+    {
+     "food": "sambar",
+     "fdc_id": "2707430",
+     "usda_description": "Sambar, vegetable stew",
+     "grams": 155.0,
+     "calories": 133.3,
+     "protein": 6.7,
+     "carbs": 18.3,
+     "fat": 4.2
+    }
+   ],
+   "totals": {
+    "calories": 324.4,
+    "protein": 10.7,
+    "carbs": 59.8,
+    "fat": 4.6
+   }
+  },
+  {
+   "id": "meal_069",
+   "text": "2 katori chicken curry",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "chicken curry",
+     "fdc_id": "2706437",
+     "usda_description": "Chicken curry",
+     "grams": 300.0,
+     "calories": 321.0,
+     "protein": 19.4,
+     "carbs": 19.6,
+     "fat": 19.4
+    }
+   ],
+   "totals": {
+    "calories": 321.0,
+    "protein": 19.4,
+    "carbs": 19.6,
+    "fat": 19.4
+   }
+  },
+  {
+   "id": "meal_070",
+   "text": "a katori of fish curry and 3 rotis",
+   "split": "dev",
+   "unsized": false,
+   "items": [
+    {
+     "food": "fish curry",
+     "fdc_id": "2706460",
+     "usda_description": "Fish curry",
+     "grams": 150.0,
+     "calories": 139.5,
+     "protein": 7.4,
+     "carbs": 10.0,
+     "fat": 8.1
+    },
+    {
+     "food": "roti",
+     "fdc_id": "2707713",
+     "usda_description": "Bread, chappatti or roti",
+     "grams": 120.0,
+     "calories": 358.8,
+     "protein": 9.4,
+     "carbs": 55.3,
+     "fat": 11.0
+    }
+   ],
+   "totals": {
+    "calories": 498.3,
+    "protein": 16.8,
+    "carbs": 65.3,
+    "fat": 19.1
+   }
+  },
+  {
+   "id": "meal_071",
+   "text": "a plate of chicken biryani",
+   "split": "dev",
+   "unsized": true,
+   "items": [
+    {
+     "food": "chicken biryani",
+     "fdc_id": "2706538",
+     "usda_description": "Biryani with chicken",
+     "grams": 245.0,
+     "calories": 254.8,
+     "protein": 17.5,
+     "carbs": 33.3,
+     "fat": 5.8
+    }
+   ],
+   "totals": {
+    "calories": 254.8,
+    "protein": 17.5,
+    "carbs": 33.3,
+    "fat": 5.8
+   }
+  },
+  {
+   "id": "meal_072",
+   "text": "some rice and dal",
+   "split": "test",
+   "unsized": true,
+   "items": [
+    {
+     "food": "rice",
+     "fdc_id": "2708408",
+     "usda_description": "Rice, white, cooked, no added fat",
+     "grams": 118.0,
+     "calories": 152.2,
+     "protein": 3.2,
+     "carbs": 33.0,
+     "fat": 0.3
+    },
+    {
+     "food": "dal",
+     "fdc_id": "2707427",
+     "usda_description": "Dal",
+     "grams": 240.0,
+     "calories": 348.0,
+     "protein": 20.6,
+     "carbs": 46.1,
+     "fat": 10.3
+    }
+   ],
+   "totals": {
+    "calories": 500.2,
+    "protein": 23.8,
+    "carbs": 79.1,
+    "fat": 10.6
+   }
+  },
+  {
+   "id": "meal_073",
+   "text": "a bowl of dal",
+   "split": "test",
+   "unsized": true,
+   "items": [
+    {
+     "food": "dal",
+     "fdc_id": "2707427",
+     "usda_description": "Dal",
+     "grams": 240.0,
+     "calories": 348.0,
+     "protein": 20.6,
+     "carbs": 46.1,
+     "fat": 10.3
+    }
+   ],
+   "totals": {
+    "calories": 348.0,
+    "protein": 20.6,
+    "carbs": 46.1,
+    "fat": 10.3
+   }
+  },
+  {
+   "id": "meal_074",
+   "text": "a serving of palak paneer",
+   "split": "dev",
+   "unsized": true,
+   "items": [
+    {
+     "food": "palak paneer",
+     "fdc_id": "2709631",
+     "usda_description": "Palak Paneer",
+     "grams": 100.0,
+     "calories": 101.0,
+     "protein": 5.4,
+     "carbs": 4.3,
+     "fat": 7.0
+    }
+   ],
+   "totals": {
+    "calories": 101.0,
+    "protein": 5.4,
+    "carbs": 4.3,
+    "fat": 7.0
+   }
+  },
+  {
+   "id": "meal_075",
+   "text": "a bowl of upma",
+   "split": "dev",
+   "unsized": true,
+   "items": [
+    {
+     "food": "upma",
+     "fdc_id": "2709128",
+     "usda_description": "Upma",
+     "grams": 170.0,
+     "calories": 147.9,
+     "protein": 3.4,
+     "carbs": 23.5,
+     "fat": 4.5
+    }
+   ],
+   "totals": {
+    "calories": 147.9,
+    "protein": 3.4,
+    "carbs": 23.5,
+    "fat": 4.5
+   }
+  },
+  {
+   "id": "meal_076",
+   "text": "a plate of veg biryani",
+   "split": "test",
+   "unsized": true,
+   "items": [
+    {
+     "food": "veg biryani",
+     "fdc_id": "2708985",
+     "usda_description": "Biryani with vegetables",
+     "grams": 215.0,
+     "calories": 234.3,
+     "protein": 4.1,
+     "carbs": 38.5,
+     "fat": 6.9
+    }
+   ],
+   "totals": {
+    "calories": 234.3,
+    "protein": 4.1,
+    "carbs": 38.5,
+    "fat": 6.9
+   }
+  },
+  {
+   "id": "meal_077",
+   "text": "a serving of curd",
+   "split": "dev",
+   "unsized": true,
+   "items": [
+    {
+     "food": "curd",
+     "fdc_id": "2705418",
+     "usda_description": "Yogurt, whole milk, plain",
+     "grams": 170.0,
+     "calories": 132.6,
+     "protein": 6.5,
+     "carbs": 9.5,
+     "fat": 7.6
+    }
+   ],
+   "totals": {
+    "calories": 132.6,
+    "protein": 6.5,
+    "carbs": 9.5,
+    "fat": 7.6
+   }
+  },
+  {
+   "id": "meal_078",
+   "text": "some peanuts",
+   "split": "test",
+   "unsized": true,
+   "items": [
+    {
+     "food": "peanuts",
+     "fdc_id": "2707515",
+     "usda_description": "Peanuts, roasted, salted",
+     "grams": 28.0,
+     "calories": 167.7,
+     "protein": 7.8,
+     "carbs": 4.3,
+     "fat": 14.7
+    }
+   ],
+   "totals": {
+    "calories": 167.7,
+    "protein": 7.8,
+    "carbs": 4.3,
+    "fat": 14.7
+   }
+  },
+  {
+   "id": "meal_079",
+   "text": "an omelette",
+   "split": "test",
+   "unsized": true,
+   "items": [
+    {
+     "food": "omelette egg",
+     "fdc_id": "2707200",
+     "usda_description": "Egg omelet or scrambled egg, made with oil",
+     "grams": 110.0,
+     "calories": 211.2,
+     "protein": 12.8,
+     "carbs": 1.0,
+     "fat": 17.4
+    }
+   ],
+   "totals": {
+    "calories": 211.2,
+    "protein": 12.8,
+    "carbs": 1.0,
+    "fat": 17.4
+   }
+  }
+ ]
+}

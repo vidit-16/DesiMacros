@@ -47,37 +47,62 @@ class NutritionPer100g:
 # ── IFCT Database Setup ───────────────────────────────────────────────────────
 
 # Curated Indian food nutrition data (per 100g, cooked unless noted)
-# Source: NIN IFCT 2017, approximate values
+#
+# Values are cross-checked against two published references, and a row is only
+# changed when both disagree with it in the same direction (docs/ACCURACY.md):
+#   INDB - Indian Nutrient Databank, 1,014 Indian recipes derived from
+#          ICMR-NIN IFCT 2017 (Nanavati et al., CC BY; row codes below).
+#   USDA - FoodData Central FNDDS survey foods.
+# INDB rows for deep-fried dishes count all the frying oil as absorbed (a
+# samosa at 577 kcal/100 g) and its boiled dishes include their cooking water
+# (a boiled egg at 45), so those rows are not used.
 IFCT_SEED_DATA = [
     # (name, aliases, calories, protein, carbs, fat, fiber)
     ("dal tadka",       "dal,toor dal,arhar dal,yellow dal",        116, 7.0, 17.0, 2.8, 3.0),
     ("dal makhani",     "mah di dal,black dal",                     130, 6.5, 15.0, 5.0, 3.5),
     ("chana dal",       "bengal gram dal,split chickpea",           109, 7.3, 16.8, 2.1, 3.9),
     ("moong dal",       "green gram dal,mung dal",                  104, 7.6, 16.3, 1.1, 4.1),
-    ("rajma",           "kidney beans,red beans",                   127, 8.7, 22.8, 0.5, 6.4),
+    # Was 127 kcal with almost no fat, which is dry-boiled beans rather than the
+    # curry people eat. INDB ASC165 (kidney bean curry) 144 kcal.
+    ("rajma",           "kidney beans,red beans",                   144, 6.0, 16.4, 5.8, 5.8),
+    # INDB ASC162 chickpeas curry 163 kcal: the existing value stands.
     ("chole",           "chana masala,chickpeas,kabuli chana",      164, 8.9, 27.4, 2.6, 7.6),
     ("kadhi",           "kadhi pakora,besan kadhi",                  82, 3.1, 10.2, 3.4, 0.8),
-    ("palak paneer",    "spinach paneer",                           168, 8.2,  6.4,12.8, 2.1),
+    # Was 168 kcal. INDB ASC215 says 78 and USDA 101, both far lower, so the
+    # value sat between them at 100.
+    ("palak paneer",    "spinach paneer",                           100, 5.5,  5.0, 6.8, 2.0),
     ("paneer bhurji",   "scrambled paneer",                        210,13.5,  4.2,15.8, 0.5),
     ("paneer butter masala","paneer makhani,butter paneer",        225,10.1,  9.3,17.2, 1.2),
-    ("aloo gobi",       "potato cauliflower",                        72, 2.1, 10.8, 2.4, 2.8),
-    ("aloo matar",      "potato peas",                               89, 2.8, 14.2, 2.9, 3.1),
+    # Was 72 kcal, too low for a dish cooked in oil. INDB ASC171 106, USDA
+    # vegetable curry 86.
+    ("aloo gobi",       "potato cauliflower",                        98, 2.0,  8.5, 6.0, 2.9),
+    # INDB ASC190 pea potato curry 101 kcal.
+    ("aloo matar",      "potato peas",                              101, 3.5,  9.7, 5.1, 3.6),
     ("basmati rice",    "rice,steamed rice,plain rice,chawal",      130, 2.7, 28.2, 0.2, 0.4),
     ("jeera rice",      "cumin rice",                               148, 2.9, 29.1, 2.4, 0.5),
     ("roti",            "chapati,phulka,wheat roti,tawa roti",      264, 8.1, 51.7, 3.7, 3.4),
     ("plain paratha",   "paratha,tawa paratha,ghee paratha",        297, 7.9, 49.8, 7.9, 2.8),
     ("aloo paratha",    "potato paratha,stuffed paratha",           259, 6.2, 37.4, 9.8, 2.5),
     ("poha",            "flattened rice,beaten rice,chivda",        180, 3.5, 34.2, 4.1, 1.2),
+    # INDB BFP039 semolina upma 148 kcal confirms this; USDA's 87 is the outlier.
     ("upma",            "rava upma,semolina upma",                  153, 4.2, 22.1, 5.4, 1.8),
     # Was 58 kcal, which is one 40 g idli entered as if it were 100 g, so every
     # idli logged at under half its energy. Rescaled per 100 g.
-    ("idli",            "idly",                                     145, 5.5, 28.3, 1.0, 1.5),
-    ("dosa",            "plain dosa,sada dosa",                     133, 4.4, 24.1, 2.7, 1.1),
-    ("sambar",          "sambhar",                                   47, 2.9,  7.3, 0.9, 2.1),
+    # 58 kcal was one 40 g idli entered as if it were 100 g. INDB ASC144 (138)
+    # and USDA (128) both confirm the corrected figure.
+    ("idli",            "idly",                                     140, 4.8, 28.2, 0.6, 2.0),
+    # Was 133 kcal, the lowest of the three sources by far: USDA plain dosa is
+    # 210 and INDB BFP148 381 (its batter-weight basis makes it an outlier).
+    # Set to 190, near the USDA figure.
+    ("dosa",            "plain dosa,sada dosa",                     190, 5.2, 34.0, 4.0, 1.6),
+    # Was 47 kcal, about half of both references: INDB ASC167 97, USDA 86.
+    ("sambar",          "sambhar",                                   92, 3.4, 10.6, 4.2, 3.5),
     ("curd",            "dahi,yogurt,plain yogurt",                  62, 3.1,  4.7, 3.4, 0.0),
     ("lassi",           "sweet lassi,salted lassi",                  78, 2.9,  9.8, 3.1, 0.0),
     ("khichdi",         "dal khichdi,moong khichdi",               118, 4.8, 21.3, 1.9, 1.8),
-    ("biryani",         "chicken biryani,veg biryani,mutton biryani",210,8.1,28.4, 7.4, 1.2),
+    # Was 210 kcal. INDB puts mutton biryani at 191 and vegetable at 175;
+    # USDA's survey biryanis are 104-145. 190 follows the Indian recipes.
+    ("biryani",         "chicken biryani,veg biryani,mutton biryani",190,7.0,22.0, 8.0, 2.4),
     ("omelette",        "egg omelette,plain omelette",             154,10.6,  0.6,12.1, 0.0),
     ("boiled egg",      "hard boiled egg,egg",                     155,13.0,  1.1,11.0, 0.0),
     ("scrambled eggs",  "anda bhurji,egg bhurji",                  148,10.1,  1.5,11.3, 0.0),
@@ -98,12 +123,15 @@ IFCT_SEED_DATA = [
     ("papad",           "papadum,appalam,pappad",                  371,20.0, 52.0, 8.0, 8.0),
     ("masala dosa",     "masaladosa,potato dosa",                  175, 3.8, 27.5, 5.8, 2.0),
     ("maggi",           "instant noodles,2 minute noodles",        450, 9.5, 60.0,18.5, 2.5),
-    ("coconut chutney", "nariyal chutney,white chutney",           194, 3.5,  8.0,17.0, 4.0),
+    # Was 194 kcal, below both references: INDB ASC386 266 and USDA 246.
+    ("coconut chutney", "nariyal chutney,white chutney",           255, 3.6,  8.3,23.0, 4.5),
     ("filter coffee",   "south indian coffee,kaapi,milk coffee",    60, 1.8,  8.5, 2.0, 0.0),
     ("paneer",          "cottage cheese,fresh paneer,malai paneer", 296,18.3,  1.2,22.8, 0.0),
     ("paneer sandwich", "grilled paneer sandwich,paneer toast",     260,10.5, 26.0,11.5, 2.0),
     ("veg sandwich",    "sandwich,vegetable sandwich,grilled sandwich,club sandwich",
                                                                    220, 6.0, 30.0, 7.5, 2.5),
+    # Added from INDB ASC142; naan had a piece weight but no nutrition row.
+    ("naan",            "plain naan,butter naan,kulcha",            286, 8.1, 51.8, 5.0, 1.9),
 ]
 
 def init_ifct_db():

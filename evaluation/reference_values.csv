@@ -1,0 +1,27 @@
+food,app_kcal_per_100g,indb_code,indb_name,indb_kcal,usda_fdc_id,usda_name,usda_kcal,decision
+idli,140,ASC144,Idli,137.5,2708346,Idli,128,corrected: was one idli's energy as a per-100 g value
+sambar,92,ASC167,Sambar,96.9,2707430,"Sambar, vegetable stew",86.0,corrected: both references about twice the old value
+dosa,190,BFP148,Plain dosa,380.9,2708347,"Dosa, plain",210,corrected towards USDA; INDB's batter-weight row is an outlier
+palak paneer,100,ASC215,Spinach paneer (Palak paneer),77.7,2709631,Palak Paneer,101,corrected down: both references far lower
+aloo gobi,98,ASC171,Potato cauliflower (Aloo gobhi),106.2,2710067,Vegetable curry,86.0,corrected up: too low for a dish cooked in oil
+aloo matar,101,ASC190,Pea potato curry (Aloo matar),100.9,2710067,Vegetable curry,86.0,corrected to INDB
+rajma,144,ASC165,Kidney bean curry (Rajmah curry),143.7,2707381,"Kidney beans, from dried, no added fat",126,"corrected: old value was dry-boiled beans, not the curry"
+biryani,190,ASC122,Mutton biryani/biriyani,190.8,2706538,Biryani with chicken,104,"corrected to the Indian recipes, not USDA's lighter survey dish"
+coconut chutney,255,ASC386,Coconut chutney (Nariyal ki chutney),265.9,2709309,Chutney,246,corrected up: below both references
+naan,286,ASC142,Naan,286.4,2707613,"Bread, naan",311,added: had a piece weight but no nutrition row
+upma,153,BFP039,Semolina upma (Suji/Rava upma),147.9,2709128,Upma,87.0,"kept: INDB agrees, USDA is the outlier"
+chole,164,ASC162,Chickpeas curry (Safed channa curry),163.4,2707416,"Chickpeas, from dried, no added fat",163,kept: INDB agrees
+poha,180,BFP045,Vegetable poha,180.5,,,,kept: INDB agrees
+plain paratha,297,ASC097,Plain parantha/paratha,298.3,2707715,"Bread, paratha",326,kept: both references agree
+aloo paratha,259,ASC098,Potato parantha/paratha (Aloo ka parantha/paratha),205.0,,,,"kept: one reference only, and it is lower"
+masala dosa,175,ASC146,Masala dosa,164.6,2709129,"Dosa, with filling",184,kept: INDB agrees
+basmati rice,130,ASC113,Boiled rice (Uble chawal),117.2,2708408,"Rice, white, cooked, no added fat",129,kept: all three within 10%
+roti,264,ASC096,Chapati/Roti,202.3,2707713,"Bread, chappatti or roti",299,kept: sits between the two references
+veg sandwich,220,BFP458,Peanut butter cucumber sandwich,243.3,2709132,Vegetable sandwich on white,120,"kept: INDB agrees, USDA is the outlier"
+paneer,296,,,,2705740,"Cheese, paneer",299,kept: USDA agrees
+papad,371,,,,2707429,"Papad, grilled or broiled",371,kept: USDA agrees
+curd,62,,,,2705418,"Yogurt, whole milk, plain",78.0,"kept: one reference only (USDA whole-milk yoghurt, 78)"
+maggi,450,,,,,,,kept: dry-weight value paired with a dry piece weight
+boiled egg,155,ASC056,Boiled egg (Ubla anda),45.4,2707154,"Egg, whole, boiled or poached",143,INDB unusable: its boiled dishes include cooking water
+bhatura,325,ASC143,Bhatura,793.2,,,,INDB unusable: all frying oil counted as absorbed
+lassi,78,ASC021,Sweet Lassi (Meethi lassi),35.7,,,,INDB unusable: recipe mass diluted by water

@@ -48,6 +48,8 @@ app.add_middleware(
 class LogMealRequest(BaseModel):
     text: str
     log_date: str | None = None
+    # Log items without a stated amount at a typical portion instead of asking.
+    use_typical_portions: bool = False
 
 class MealEntryOut(BaseModel):
     id: int
@@ -68,6 +70,10 @@ class LogMealResponse(BaseModel):
     clarification_needed: str
     entries: list[MealEntryOut]
     daily_totals: dict
+    # False when nothing was saved because some amounts were not stated; those
+    # foods are listed in needs_quantities.
+    logged: bool = True
+    needs_quantities: list[str] = []
 
 class ProfileUpdateRequest(BaseModel):
     # Bounds reject values the formulas cannot use: a height of 0 used to raise
@@ -272,6 +278,28 @@ def log_meal(
             status_code=422,
             detail=parsed.clarification_needed
             or "Couldn't identify any food in that. Try naming the dishes, e.g. '2 rotis with dal'.",
+        )
+
+    # A guessed amount was the largest remaining error on unsized meals
+    # ("some rice": 40% median error), and no default is right for everyone.
+    # Ask first; the caller can still choose typical portions.
+    missing_amounts = [item.food_name for item in parsed.items if not item.quantity_given]
+    if missing_amounts and not req.use_typical_portions:
+        entries_today = (
+            db.query(MealEntry)
+            .join(DailyLog)
+            .filter(DailyLog.log_date == log_date, DailyLog.user_id == user.id)
+            .all()
+        )
+        return LogMealResponse(
+            log_date=str(log_date),
+            raw_input=req.text,
+            parse_confidence=parsed.parse_confidence,
+            clarification_needed=parsed.clarification_needed,
+            entries=[],
+            daily_totals=_compute_totals(entries_today, user),
+            logged=False,
+            needs_quantities=missing_amounts,
         )
 
     nutrition_results = []

@@ -30,6 +30,9 @@ class ParsedMealItem(BaseModel):
     unit: str                  # "katori", "piece", "g", "cup", "tbsp", etc.
     meal_time: str = "unknown" # "breakfast", "lunch", "dinner", "snack", "unknown"
     notes: str = ""            # e.g. "with less oil", "homemade"
+    # False when the amount was assumed: "some rice", "a plate of biryani", or
+    # no amount at all. The API asks the user before logging such an item.
+    quantity_given: bool = True
 
 class ParsedMealResponse(BaseModel):
     items: list[ParsedMealItem]
@@ -60,7 +63,12 @@ RULES:
 6. Name foods as they were eaten. Cereals cooked in water or milk are "cooked oats",
    not "oats"; "oats" alone means dry oats, which are five times as calorie-dense.
    Keep the unit the user gave ("can", "bottle", "cup", "glass", "tbsp", "g").
-7. parse_confidence: "high" if quantities are clear, "medium" if estimated, "low" if very vague
+7. quantity_given: true if the user stated how much of this item: a count ("2 rotis",
+   "an apple", "3 idli"), a standard measure (katori, cup, glass, tbsp, tsp, grams, ml,
+   can, bottle, slice) or a clear fraction of one ("half katori"). false if you assumed
+   the amount: "some", "a bit", "a bowl", "a plate", "a serving", or no amount at all
+   ("dal chawal for lunch").
+8. parse_confidence: "high" if quantities are clear, "medium" if estimated, "low" if very vague
 
 OUTPUT FORMAT (strict JSON):
 {
@@ -70,7 +78,8 @@ OUTPUT FORMAT (strict JSON):
       "quantity": 1.5,
       "unit": "katori",
       "meal_time": "lunch",
-      "notes": ""
+      "notes": "",
+      "quantity_given": true
     }
   ],
   "parse_confidence": "high",
@@ -92,6 +101,20 @@ EXAMPLES of food_name values (use simple, searchable names):
 USER_PROMPT_TEMPLATE = """Parse this meal description: "{user_input}"
 
 Remember: Return ONLY the JSON object. No other text."""
+
+
+# Units that name a container, not an amount. The model is told to mark these
+# as assumed amounts but does not always do so, so it is enforced here.
+VAGUE_UNITS = {"plate", "plates", "bowl", "bowls", "serving", "servings", "portion", "portions",
+               "some", "helping", "helpings"}
+
+
+def _with_vague_units_marked(items: list[dict]) -> list[ParsedMealItem]:
+    parsed = [ParsedMealItem(**item) for item in items]
+    for item in parsed:
+        if item.unit.lower().strip() in VAGUE_UNITS:
+            item.quantity_given = False
+    return parsed
 
 
 # ── Parser ────────────────────────────────────────────────────────────────────
@@ -151,7 +174,7 @@ class MealParser:
         parsed_data = self._safe_parse_json(raw_text)
 
         return ParsedMealResponse(
-            items=[ParsedMealItem(**item) for item in parsed_data.get("items", [])],
+            items=_with_vague_units_marked(parsed_data.get("items", [])),
             raw_input=user_input,
             parse_confidence=parsed_data.get("parse_confidence", "medium"),
             clarification_needed=parsed_data.get("clarification_needed", ""),

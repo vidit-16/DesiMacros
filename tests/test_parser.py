@@ -178,3 +178,24 @@ def test_get_meal_parser_reuses_one_instance(parser, monkeypatch):
     parser(VALID)
     monkeypatch.setattr(mp, "_parser_instance", None)
     assert mp.get_meal_parser() is mp.get_meal_parser()
+
+
+# ── stated and assumed amounts ───────────────────────────────────────────────
+
+
+def test_amounts_are_assumed_given_unless_the_model_says_otherwise(parser):
+    body = {"items": [
+        {"food_name": "roti", "quantity": 2, "unit": "piece"},
+        {"food_name": "rice", "quantity": 1, "unit": "katori", "quantity_given": False},
+    ]}
+    instance, _ = parser(json.dumps(body))
+    items = instance.parse("2 rotis and some rice").items
+    assert [i.quantity_given for i in items] == [True, False]
+
+
+@pytest.mark.parametrize("unit", ["plate", "Bowl", " serving ", "portions"])
+def test_container_units_are_never_a_stated_amount(parser, unit):
+    """The model does not always follow this rule, so it is enforced in code."""
+    body = {"items": [{"food_name": "biryani", "quantity": 1, "unit": unit, "quantity_given": True}]}
+    instance, _ = parser(json.dumps(body))
+    assert instance.parse("a plate of biryani").items[0].quantity_given is False

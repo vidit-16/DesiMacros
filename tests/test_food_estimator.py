@@ -7,6 +7,9 @@ what evaluation/benchmark.py measures).
 
 from __future__ import annotations
 
+import json
+from types import SimpleNamespace
+
 import pytest
 
 from app.services import food_estimator, nutrition
@@ -66,6 +69,26 @@ def test_energy_must_roughly_match_its_macros():
     assert validate(_consistent(600, carbs=100)) is not None      # gap 200 <= 220
     assert validate(_consistent(200, carbs=30.9)) is not None     # gap 76.4 <= 80, under
     assert validate(_consistent(200, carbs=29.9)) is None         # gap 80.4 > 80, under
+
+
+def test_zero_energy_is_rejected_even_when_consistent():
+    assert validate(_consistent(0)) is None
+    assert validate(_consistent(0.5, carbs=0.125)) is not None
+
+
+def test_each_macro_uses_its_own_energy_factor():
+    """4 kcal/g protein and carbs, 9 kcal/g fat, checked at the edge of tolerance."""
+    assert validate(_consistent(200, protein=69.5)) is not None   # 278, gap 78
+    assert validate(_consistent(200, carbs=69.5)) is not None     # 278, gap 78
+    assert validate(_consistent(200, fat=30.8)) is not None       # 277.2, gap 77.2
+
+
+def test_tolerance_edge_is_accepted():
+    assert validate(_consistent(100, carbs=36.25)) is not None    # gap exactly 45
+
+
+def test_macro_total_counts_every_macro():
+    assert validate(_consistent(459, carbs=90, fat=11)) is None   # 101 g per 100 g
 
 
 def test_missing_nutrients_count_as_zero():
@@ -166,3 +189,29 @@ def test_foods_the_model_cannot_estimate_stay_flagged(estimates):
 def test_estimates_can_be_switched_off(monkeypatch):
     monkeypatch.setattr(nutrition, "ESTIMATES_ENABLED", False)
     assert nutrition.estimate_food("samosa") is None
+
+
+# ── the model call itself, with the client faked ─────────────────────────────
+
+
+def test_model_request_and_response_handling(monkeypatch, with_key):
+    import groq
+
+    sent = {}
+
+    class FakeClient:
+        def __init__(self, api_key):
+            sent["api_key"] = api_key
+            self.chat = SimpleNamespace(completions=SimpleNamespace(create=self.create))
+
+        def create(self, **kwargs):
+            sent.update(kwargs)
+            content = "```json\n" + json.dumps(SAMOSA) + "\n```"
+            return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content))])
+
+    monkeypatch.setattr(groq, "Groq", FakeClient)
+    assert food_estimator._ask_model("samosa") == SAMOSA
+    assert sent["api_key"] == "test-key"
+    assert sent["temperature"] == 0                       # same food, same numbers
+    assert json.loads(sent["messages"][1]["content"]) == {"food_name": "samosa"}
+    assert sent["messages"][0]["content"] == food_estimator.SYSTEM_PROMPT

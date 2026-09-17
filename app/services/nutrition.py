@@ -378,6 +378,8 @@ UNIT_TO_ML = {
 # every food, whether curd, dal or biryani.
 SERVING_UNITS = {"serving", "servings", "portion", "portions"}
 
+SLICE_UNITS = {"slice", "slices"}
+
 # Grams in one 240 ml cup, for foods whose density is far from water's. Values
 # are USDA household measures for the food as served, except poha, khichdi,
 # paneer, muesli and maggi, which are approximations. Foods not listed are
@@ -442,6 +444,14 @@ def unit_to_grams(
         else:
             per_cup = _lookup_by_name(CUP_GRAMS, food_name) or 240
         return quantity * UNIT_TO_ML[unit_lower] * per_cup / 240
+
+    if unit_lower in SLICE_UNITS:
+        # A slice is 30 g of bread, but "2 slices of pizza" logged 60 g of
+        # pizza. For a food the tables do not know, one slice is the estimate's
+        # own piece weight.
+        if piece_grams and not _piece_weight(food_name):
+            return quantity * piece_grams
+        return quantity * UNIT_TO_GRAMS["slice"]
 
     if unit_lower in UNIT_TO_GRAMS:
         return quantity * UNIT_TO_GRAMS[unit_lower]

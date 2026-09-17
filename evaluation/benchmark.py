@@ -24,6 +24,7 @@ import json
 import os
 import statistics
 import sys
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -52,16 +53,29 @@ def _oracle_items(meal: dict) -> list[tuple[str, float, str]]:
             for food, how, amount in MEALS[index][1]]
 
 
-def _parsed_items(meal: dict, parser, cache: dict) -> list[tuple[str, float, str]]:
+def _parsed_items(meal: dict, parser, cache: dict) -> list[tuple[str, float, str, bool]]:
     from app.services.meal_parser import SYSTEM_PROMPT
     # The prompt is part of the key: a prompt change must re-parse, not reuse.
     key = hashlib.sha1(f"{parser.model}|{SYSTEM_PROMPT}|{meal['text']}".encode()).hexdigest()
     if key not in cache:
-        result = parser.parse(meal["text"])
-        cache[key] = [(i.food_name, i.quantity, i.unit) for i in result.items]
+        for attempt in range(30):
+            try:
+                result = parser.parse(meal["text"])
+                break
+            except Exception as exc:
+                # Groq's free tier has a daily token budget; wait it out rather
+                # than lose a half-finished run.
+                if "rate_limit" not in str(exc) or attempt == 29:
+                    raise
+                print(f"  rate limited, waiting 60s ({meal['id']})", file=sys.stderr, flush=True)
+                time.sleep(60)
+        cache[key] = [(i.food_name, i.quantity, i.unit, i.quantity_given) for i in result.items]
         CACHE.parent.mkdir(exist_ok=True)
         CACHE.write_text(json.dumps(cache, indent=1), encoding="utf-8")
-    return [tuple(x) for x in cache[key]]
+    from app.services.meal_parser import VAGUE_UNITS
+    # Parses cached before the container-unit rule existed get it applied here.
+    return [(name, qty, unit, given and unit.lower().strip() not in VAGUE_UNITS)
+            for name, qty, unit, given in cache[key]]
 
 
 def score(mode: str, split: str, show_worst: int, estimates: bool = True, density: bool = True) -> dict:
@@ -85,8 +99,13 @@ def score(mode: str, split: str, show_worst: int, estimates: bool = True, densit
 
     rows = []
     for meal in meals:
-        items = _oracle_items(meal) if mode == "oracle" else _parsed_items(meal, parser, cache)
-        looked = [nutrition.lookup_nutrition(n, q, u) for n, q, u in items]
+        if mode == "oracle":
+            items = [(*item, True) for item in _oracle_items(meal)]
+        else:
+            items = _parsed_items(meal, parser, cache)
+        # Calories are scored at typical portions, as if the user chose them
+        # when asked; whether the app asked is reported separately.
+        looked = [nutrition.lookup_nutrition(n, q, u) for n, q, u, _ in items]
         got = {k: sum(x[k] for x in looked) for k in ("calories", "protein", "carbs", "fat")}
         gold = meal["totals"]
         err = {k: abs(got[k] - gold[k]) / max(gold[k], 1.0) * 100 for k in got}
@@ -95,6 +114,7 @@ def score(mode: str, split: str, show_worst: int, estimates: bool = True, densit
             "gold": gold["calories"], "got": round(got["calories"], 1), "err": err,
             "signed": (got["calories"] - gold["calories"]) / gold["calories"] * 100,
             "not_found": sum(x["source"] == "not_found" for x in looked),
+            "asked": any(not given for *_, given in items),
             "items": [(x["food_name"], round(x["grams"]), x["calories"], x["source"]) for x in looked],
         })
 
@@ -108,6 +128,7 @@ def score(mode: str, split: str, show_worst: int, estimates: bool = True, densit
             "median_protein_err": statistics.median(r["err"]["protein"] for r in subset),
             "median_signed": statistics.median(r["signed"] for r in subset),
             "meals_with_not_found": sum(r["not_found"] > 0 for r in subset),
+            "asked_for_amounts": sum(r["asked"] for r in subset),
         }
 
     out = {"all": summary(rows)}
@@ -121,7 +142,8 @@ def score(mode: str, split: str, show_worst: int, estimates: bool = True, densit
         print(f"  {name:8} n={s['meals']:3}  median cal err {s['median_cal_err']:5.1f}%  "
               f"within 10% {s['within_10']:4.0%}  within 20% {s['within_20']:4.0%}  "
               f"protein err {s['median_protein_err']:5.1f}%  bias {s['median_signed']:+5.1f}%  "
-              f"meals with unknown food {s['meals_with_not_found']}")
+              f"meals with unknown food {s['meals_with_not_found']}  "
+              f"asked for amounts {s['asked_for_amounts']}")
     for r in sorted(rows, key=lambda r: -r["err"]["calories"])[:show_worst]:
         print(f"  {r['err']['calories']:6.0f}%  gold {r['gold']:6.0f} got {r['got']:6.0f}  {r['text']}")
         for item in r["items"]:

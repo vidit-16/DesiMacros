@@ -124,9 +124,10 @@ with st.sidebar:
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
-def post_log(text, log_date):
+def post_log(text, log_date, use_typical_portions=False):
     try:
-        r = httpx.post(f"{API_BASE}/api/log", json={"text": text, "log_date": log_date}, timeout=30, headers=HEADERS)
+        payload = {"text": text, "log_date": log_date, "use_typical_portions": use_typical_portions}
+        r = httpx.post(f"{API_BASE}/api/log", json=payload, timeout=30, headers=HEADERS)
         return r.json() if r.status_code == 200 else {"error": r.text}
     except Exception as e:
         return {"error": str(e)}
@@ -172,8 +173,8 @@ def macro_card(label, value, unit="g", color="#2f5d50"):
 if page == "Log a meal":
     st.title("Log a meal")
     st.caption(
-        "Describe what you ate in your own words. Quantities are optional, "
-        "but including them (for example, 2 rotis or 1 katori of dal) makes the estimate more accurate."
+        "Describe what you ate in your own words, with amounts where you can (for example, 2 rotis "
+        "or 1 katori of dal). If an amount is missing you will be asked for it, or can use a typical portion."
     )
 
     if "chat_history" not in st.session_state:
@@ -183,9 +184,9 @@ if page == "Log a meal":
 
     st.markdown("**Examples**")
     examples = [
-        "Had poha for breakfast and chai",
+        "A katori of poha and a cup of chai for breakfast",
         "2 rotis with dal tadka and a katori of dahi for lunch",
-        "Rajma chawal for dinner with some salad",
+        "1 katori rajma with 1 katori rice for dinner",
         "Dal, mixed vegetable sabzi and 3 rotis",
     ]
     cols = st.columns(2)
@@ -195,13 +196,34 @@ if page == "Log a meal":
 
     prefill = st.session_state.pop("prefill", "")
     user_input = st.chat_input("Describe your meal") or prefill
+    use_typical = False
+
+    pending = st.session_state.get("pending_meal")
+    if pending and not user_input:
+        c1, c2 = st.columns(2)
+        if c1.button("Log with typical portions", use_container_width=True):
+            user_input, use_typical = pending, True
+        if c2.button("Cancel", use_container_width=True):
+            st.session_state.pop("pending_meal", None)
+            st.rerun()
 
     if user_input:
-        st.session_state.chat_history.append({"role": "user", "text": user_input})
+        st.session_state.pop("pending_meal", None)
+        if not use_typical:
+            st.session_state.chat_history.append({"role": "user", "text": user_input})
         with st.spinner("Estimating nutrition"):
-            result = post_log(user_input, str(log_date))
+            result = post_log(user_input, str(log_date), use_typical_portions=use_typical)
 
-        if "error" in result:
+        if "error" not in result and result.get("logged") is False:
+            names = result.get("needs_quantities", [])
+            foods = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+            st.session_state.pending_meal = user_input
+            st.session_state.chat_history.append({"role": "bot", "text": (
+                f"How much {foods} did you have? Describe the meal again with amounts, for example "
+                "\"1 katori of dal\" or \"2 rotis\", or log it with typical portions."
+            )})
+            st.rerun()
+        elif "error" in result:
             st.session_state.chat_history.append({"role": "bot", "text": f"The meal could not be logged: {result['error']}"})
         else:
             entries = result.get("entries", [])
@@ -228,6 +250,8 @@ if page == "Log a meal":
 
             st.session_state.chat_history.append({"role": "bot", "text": "\n".join(lines)})
             st.cache_data.clear()
+            if use_typical:
+                st.rerun()  # clear the portion buttons drawn earlier in this run
 
     for msg in reversed(st.session_state.chat_history):
         if msg["role"] == "user":

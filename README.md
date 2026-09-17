@@ -30,8 +30,10 @@ has no idea what a katori is.
 - **Portion-aware.** "2 pieces" means something different for a roti (40g) than
   for a dosa (100g), and a katori of rice weighs less than a katori of dal. The
   lookup knows both.
+- **Asks instead of guessing.** A meal with no amount ("dal chawal") is not
+  logged until you say how much, or accept a typical portion.
 - **Measured.** On 39 held-out meals scored against USDA reference values, the
-  median meal is 15% off and 62% are within 20%
+  median meal is 15% off and 59% are within 20%
   ([how that was measured](docs/ACCURACY.md)).
 - **Goals from your stats.** Mifflin-St Jeor BMR → TDEE → calorie and macro
   targets based on your activity level and whether you're cutting or bulking.
@@ -149,7 +151,7 @@ development needs no database server.
 
 | Method | Route | Purpose |
 | --- | --- | --- |
-| `POST` | `/api/log` | Parse a meal description and log it |
+| `POST` | `/api/log` | Parse a meal description and log it (asks for missing amounts unless `use_typical_portions`) |
 | `GET` | `/api/summary` | One day's totals and entries |
 | `GET` | `/api/history` | Entries grouped by date over a range |
 | `DELETE` | `/api/entry/{id}` | Remove a mis-logged entry |
@@ -182,7 +184,7 @@ DesiMacros/
 
 ```bash
 pip install -r requirements-dev.txt
-pytest --cov=app                 # 216 tests, no API keys or network needed
+pytest --cov=app                 # 248 tests, no API keys or network needed
 ruff check app/api app/core app/db app/services tests scripts evaluation
 python scripts/mutation_test.py  # mutation score for tdee, nutrition, food_estimator
 python evaluation/benchmark.py --split test   # accuracy against USDA reference meals
@@ -191,17 +193,17 @@ python evaluation/benchmark.py --split test   # accuracy against USDA reference 
 The suite covers services, every API route, input validation (unusable stats
 return 422 instead of a 500), smoke imports, and parity between
 `/api/tdee-preview` and `calculate_goals` for every activity x goal combination.
-Coverage: **87%** of `app/` (UI excluded).
+Coverage: **90%** of `app/` (UI excluded).
 
 **Mutation testing** (`scripts/mutation_test.py`, an AST mutator since mutmut
-does not run on Windows): `tdee.py` 44/46 killed (95.7%), `nutrition.py` 42/81
-(51.9%; survivors are mostly portion-weight constants), `food_estimator.py` 25/35
-(71.4%), total **111/162 (68.5%)**.
+does not run on Windows): `tdee.py` 44/46 killed (95.7%), `nutrition.py` 83/85
+(97.6%), `food_estimator.py` 34/35 (97.1%), total **161/166 (97.0%)**. The
+survivors change a model request parameter or are equivalent to the original.
 
 **Accuracy benchmark** ([`docs/ACCURACY.md`](docs/ACCURACY.md)): 79 meal
 descriptions labelled from USDA FNDDS, split into dev and held-out test halves.
-On the test half, median calorie error fell from 50.0% to 14.6% and meals within
-20% rose from 36% to 62%. No meal now contains a food counted as 0 kcal (before:
+On the test half, median calorie error fell from 50.0% to 14.8% and meals within
+20% rose from 36% to 59%. No meal now contains a food counted as 0 kcal (before:
 16 of 39).
 
 **Model A/B** ([`evaluation/results.md`](evaluation/results.md)): on 10

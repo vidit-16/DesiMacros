@@ -1,7 +1,7 @@
 # How accurate is DesiMacros?
 
 Short version: on 39 held-out meals the median meal lands **15%** from USDA
-reference values, and 62% of meals are within 20%. That is good enough to follow
+reference values, and 59% of meals are within 20%. That is good enough to follow
 trends and spot a low-protein week. It is not good enough to count calories
 precisely. This page explains where every number comes from, how that was
 measured, and which errors are still in there.
@@ -10,6 +10,7 @@ measured, and which errors are still in there.
 
 1. **Parse.** An LLM turns your sentence into items with a quantity and a unit.
    "2 rotis with dal" becomes `roti / 2 / piece` and `dal tadka / 1 / katori`.
+   An item whose amount you did not state is queried rather than guessed.
 2. **Match.** The food name is looked up in a curated IFCT table of Indian
    dishes, then the USDA FoodData Central API if a key is set.
 3. **Estimate.** If neither database has the food, the model is asked for
@@ -50,25 +51,32 @@ Full pipeline (parser + lookup), USDA fallback off, `openai/gpt-oss-120b`.
 | | Median calorie error | Within 20% | Median protein error | Meals with a food logged as 0 kcal |
 |---|---|---|---|---|
 | Before, dev (40 meals) | 51.7% | 28% | 47.0% | 19 |
-| **After, dev** | **11.8%** | **62%** | **18.3%** | **0** |
+| **After, dev** | **12.2%** | **62%** | **17.3%** | **0** |
 | Before, test (39 meals) | 50.0% | 36% | 47.0% | 16 |
-| **After, test** | **14.6%** | **62%** | **13.6%** | **0** |
+| **After, test** | **14.8%** | **59%** | **14.3%** | **0** |
 
 The test half improved about as much as the dev half (35 points against 40), so
 the gain is not an artefact of tuning on the meals being scored.
+
+Meals that give no amount are now asked about rather than guessed. Calories
+above are still scored at typical portions, as if the user accepted them when
+asked. On all 79 meals the app asked on 8 of the 9 meals with no stated amount
+and on 1 of the 70 that stated one ("cheese sandwich and a cup of latte", where
+the sandwich has neither a number nor an article). On the test half alone it was
+4 of 5 and 0 of 34.
 
 **What each change contributed** (all 79 meals, full pipeline):
 
 | Configuration | Median calorie error | Within 20% |
 |---|---|---|
 | Before any change | 50.2% | 32% |
-| Table fixes only (idli, cooked oats, serving size, can and bottle) | 43.2% | 35% |
-| Table fixes + per-food density for volumes | 36.4% | 41% |
+| Table fixes only (idli, cooked oats, serving size, can, bottle, slice) | 43.2% | 35% |
+| Table fixes + per-food density for volumes | 39.5% | 39% |
 | Table fixes + estimates for unknown foods | 15.7% | 54% |
-| **All changes** | **14.2%** | **62%** |
+| **All changes** | **14.3%** | **61%** |
 
 The parser is not the bottleneck. With the correct items fed straight to the
-lookup, the test half scores 14.8%, against 14.6% for the full pipeline.
+lookup, the test half scores 14.8%, the same as the full pipeline.
 
 ## What changed, and why
 
@@ -104,6 +112,17 @@ a piece weight.
 
 **"A can" or "a bottle" had no size.** They are now 330 ml and 500 ml.
 
+**A slice was always bread.** "2 slices of cheese pizza" was logged as 60 g,
+the weight of two bread slices. For a food the tables do not know, one slice is
+now the estimate's own piece weight. Bread is still 30 g a slice.
+
+**Amounts nobody stated were guessed silently.** A meal with no amount ("dal
+chawal", "a plate of biryani", "some rice") had a median error of about 40%,
+far worse than meals with amounts. The app now asks which amount it should use,
+and the user can answer or accept typical portions. The model decides whether an
+amount was stated; container words (plate, bowl, serving, portion) always count
+as unstated, because the model does not apply that rule reliably on its own.
+
 ## Errors still in there
 
 In rough order of size on the benchmark:
@@ -125,14 +144,14 @@ benchmark measures agreement with a published reference, not truth, and this is
 where that difference shows.
 
 **Portion defaults are guesses.** A samosa is 60 g in the app and 100 g in
-USDA. A plate is 300 g. "2 slices of pizza" uses the 30 g bread-slice weight.
-Street samosas vary by more than that range, so any single number is wrong for
-someone.
+USDA; a pakora 25 g against USDA's 12 g. Street food varies by more than that
+range, so any single number is wrong for someone. These were left alone rather
+than tuned to the benchmark.
 
-**Unsized meals are still poor.** The nine meals with no quantity have a median
-error of 40%, much worse than sized meals (13%). "Some rice" has no right
-answer. The honest fix is asking, which the parser does through
-`parse_confidence` and `clarification_needed`.
+**Unsized meals score badly when typical portions are used.** The nine meals
+with no quantity have a median error of 46%, against 13% for sized meals. That
+is why the app asks instead. The numbers above show what happens when the user
+accepts a typical portion, which is the worst case for accuracy.
 
 **Estimates are estimates.** They removed the largest error in the benchmark,
 but a model's idea of a typical samosa is not a lab measurement. They are

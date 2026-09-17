@@ -1,4 +1,4 @@
-# 🥗 DesiMacros — Conversational Calorie Tracker
+# DesiMacros — Conversational Calorie Tracker
 
 [![CI](https://github.com/vidit-16/DesiMacros/actions/workflows/ci.yml/badge.svg)](https://github.com/vidit-16/DesiMacros/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)

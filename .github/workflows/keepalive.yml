@@ -18,12 +18,17 @@ jobs:
     steps:
       - name: Request the app
         run: |
+          # Streamlit Community Cloud answers the first request with a 303 to
+          # /-/login and serves the app only once a session cookie is set, so
+          # the cookie jar is required: without it curl follows that redirect
+          # until it gives up.
           for attempt in 1 2 3; do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 120 -L "$URL" || echo 000)
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 120 -L --max-redirs 10 -c jar.txt -b jar.txt "$URL" || echo 000)
             echo "attempt $attempt: HTTP $code"
             if [ "$code" = "200" ]; then exit 0; fi
             sleep 30
           done
-          echo "::warning::$URL did not return 200 after three attempts"
+          echo "::error::$URL did not return 200 after three attempts"
+          exit 1
         env:
           URL: https://desimacros.onrender.com/

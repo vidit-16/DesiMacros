@@ -52,20 +52,68 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-st.markdown("""
+# One accent (the app's green), a white canvas and hairline borders. The macro
+# colours below are the chart palette, reused on the metric cards so a colour
+# means the same thing in both places.
+ACCENT = "#2f5d50"
+
+st.markdown(f"""
 <style>
-.macro-card {
-    background: #f8f9fa;
-    border-radius: 12px;
+:root {{
+  --accent: {ACCENT};
+  --accent-tint: #eaf1ee;
+  --ink: #14181f;
+  --muted: #5b6472;
+  --surface: #f7f8f9;
+  --hairline: #e5e7eb;
+}}
+
+/* Streamlit's own red-to-yellow bar sits above every page; make it ours. */
+[data-testid="stDecoration"] {{
+  background: linear-gradient(90deg, var(--accent), #4b8a76);
+}}
+
+.stMain h1 {{
+  padding-bottom: 0.3rem;
+  border-bottom: 3px solid var(--accent);
+  display: inline-block;
+}}
+
+/* Tables: an accent header and hairline rows, so a table reads as a unit. */
+[data-testid="stTable"] table {{
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--hairline);
+  border-radius: 10px;
+  overflow: hidden;
+}}
+[data-testid="stTable"] thead th {{
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--accent);
+}}
+[data-testid="stTable"] tbody tr:nth-child(even) {{ background: #fbfcfd; }}
+[data-testid="stTable"] tbody td {{ border-bottom: 1px solid var(--hairline); }}
+[data-testid="stTable"] tbody tr:last-child td {{ border-bottom: none; }}
+
+/* The day's headline figures, one card per macronutrient. */
+.macro-card {{
+    background: var(--surface);
+    border: 1px solid var(--hairline);
+    border-left: 4px solid var(--accent);
+    border-radius: 10px;
     padding: 16px;
     text-align: center;
-    border-left: 4px solid #2f5d50;
-}
-.macro-number { font-size: 28px; font-weight: 700; color: #1a1a2e; }
-.macro-label  { font-size: 12px; color: #6c757d; text-transform: uppercase; }
-.chat-msg-user { background:#f1f3f5; border-radius:12px; padding:10px 14px; margin:6px 0; color:#1a1a1a !important; }
-.chat-msg-bot  { background:#ffffff; border:1px solid #e5e7eb; border-radius:12px; padding:10px 14px; margin:6px 0; color:#1a1a1a !important; }
-.chat-role { font-size:12px; font-weight:600; color:#6c757d; margin-bottom:4px; }
+}}
+.macro-number {{ font-size: 28px; font-weight: 700; color: var(--ink); }}
+.macro-label  {{ font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }}
+
+.chat-msg-user {{ background: var(--accent-tint); border-radius:10px; padding:10px 14px; margin:6px 0; color: var(--ink) !important; }}
+.chat-msg-bot  {{ background:#ffffff; border:1px solid var(--hairline); border-left:3px solid var(--accent); border-radius:10px; padding:10px 14px; margin:6px 0; color: var(--ink) !important; }}
+.chat-role {{ font-size:12px; font-weight:600; color: var(--muted); margin-bottom:4px; letter-spacing:0.03em; }}
 </style>
 """, unsafe_allow_html=True)
 
@@ -185,7 +233,7 @@ if page == "Log a meal":
     st.markdown("**Examples**")
     examples = [
         "A katori of poha and a cup of chai for breakfast",
-        "2 rotis with dal tadka and a katori of dahi for lunch",
+        "2 rotis with 1 katori dal tadka and a katori of dahi for lunch",
         "1 katori rajma with 1 katori rice for dinner",
         "Dal, mixed vegetable sabzi and 3 rotis",
     ]
@@ -198,14 +246,9 @@ if page == "Log a meal":
     user_input = st.chat_input("Describe your meal") or prefill
     use_typical = False
 
-    pending = st.session_state.get("pending_meal")
-    if pending and not user_input:
-        c1, c2 = st.columns(2)
-        if c1.button("Log with typical portions", use_container_width=True):
-            user_input, use_typical = pending, True
-        if c2.button("Cancel", use_container_width=True):
-            st.session_state.pop("pending_meal", None)
-            st.rerun()
+    # Set by the "Log with typical portions" button on the previous run.
+    if st.session_state.pop("log_typical", False):
+        user_input, use_typical = st.session_state.get("pending_meal", ""), True
 
     if user_input:
         st.session_state.pop("pending_meal", None)
@@ -250,8 +293,15 @@ if page == "Log a meal":
 
             st.session_state.chat_history.append({"role": "bot", "text": "\n".join(lines)})
             st.cache_data.clear()
-            if use_typical:
-                st.rerun()  # clear the portion buttons drawn earlier in this run
+
+    if st.session_state.get("pending_meal"):
+        c1, c2 = st.columns(2)
+        if c1.button("Log with typical portions", use_container_width=True):
+            st.session_state.log_typical = True
+            st.rerun()
+        if c2.button("Cancel", use_container_width=True):
+            st.session_state.pop("pending_meal", None)
+            st.rerun()
 
     for msg in reversed(st.session_state.chat_history):
         if msg["role"] == "user":
@@ -346,13 +396,15 @@ elif page == "History":
                     c3.metric("Fat", f"{day['totals'].get('fat', 0)} g")
                     if day["entries"]:
                         df = pd.DataFrame(day["entries"])
-                        st.dataframe(
-                            df[["food_name", "quantity", "unit", "calories"]].rename(
-                                columns={"food_name": "Food", "quantity": "Quantity", "unit": "Unit", "calories": "Calories (kcal)"}
-                            ),
-                            use_container_width=True,
-                            hide_index=True,
+                        table = df[["food_name", "quantity", "unit", "calories"]].rename(
+                            columns={"food_name": "Food", "quantity": "Quantity",
+                                     "unit": "Unit", "calories": "Calories (kcal)"}
                         )
+                        # st.table prints raw floats ("2.0000"), so format first.
+                        table["Quantity"] = table["Quantity"].map(lambda v: f"{v:g}")
+                        table["Calories (kcal)"] = table["Calories (kcal)"].map(lambda v: f"{v:.1f}")
+                        table.index = range(1, len(table) + 1)
+                        st.table(table)
 
 
 elif page == "Weekly trends":

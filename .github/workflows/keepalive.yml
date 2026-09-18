@@ -1,0 +1,29 @@
+name: Keep the app awake
+
+# Render's free tier spins a service down after 15 minutes idle and a cold start
+# takes about a minute, so this pings every 13 minutes. It covers 00:00-19:59 UTC
+# (05:30-01:29 IST) and stops overnight: the free tier allows 750 instance-hours a
+# month against a 744-hour month, so keeping it up around the clock would sit on
+# that limit.
+on:
+  schedule:
+    - cron: "*/13 0-19 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request the app
+        run: |
+          for attempt in 1 2 3; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 120 -L "$URL" || echo 000)
+            echo "attempt $attempt: HTTP $code"
+            if [ "$code" = "200" ]; then exit 0; fi
+            sleep 30
+          done
+          echo "::warning::$URL did not return 200 after three attempts"
+        env:
+          URL: https://desimacros.onrender.com/
